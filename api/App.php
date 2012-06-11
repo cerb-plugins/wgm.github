@@ -135,19 +135,10 @@ class WgmGitHub_SetupSection extends Extension_PageSection {
 		$users = json_decode(DevblocksPlatform::getPluginSetting('wgm.github', 'users', ''), true);
 		$user = array_shift($users);
 		
-		//$github->setCredentials($token, $secret)
-		
-		// [TODO] All repos -- https://api.github.com/user/repos
-		
 		$out = $github->get(
 			sprintf("https://api.github.com/repos/%s/%s",
 				urlencode('cerb-plugins'),
-// 				urlencode('wgm'),
-		
 				urlencode('wgm.freshbooks')
-// 				urlencode('cerb-book')
-// 				urlencode('wgm.profile.attachments')
-// 				urlencode('cerberusweb.datacenter.sensors')
 			),
 			array(
 				'access_token' => $user['access_token'],
@@ -155,8 +146,6 @@ class WgmGitHub_SetupSection extends Extension_PageSection {
 		);
 		
 		if(false !== ($json = @json_decode($out, true))) {
-			var_dump($json);
-			
 			$fields = array(
 				DAO_GitHubRepository::GITHUB_ID => $json['id'],
 				DAO_GitHubRepository::NAME => $json['name'],
@@ -186,26 +175,7 @@ class WgmGitHub_SetupSection extends Extension_PageSection {
 			} else {
 				DAO_GitHubRepository::create($fields);
 			}
-			
-			var_dump($fields);
 		}
-		
-		/*
-		$out = $github->get(
-			sprintf("https://api.github.com/repos/%s/%s/issues",
-				urlencode('cerb-plugins'),
-// 				urlencode('wgm.profile.attachments')
-				urlencode('cerberusweb.datacenter.sensors')
-			),
-			array(
-				'access_token' => $user['access_token'],
-			)
-		);
-		
-		if(false !== ($json = @json_decode($out, true))) {
-			var_dump($json);
-		}
-		*/
 	}
 	
 	function updateReposAction() {
@@ -215,10 +185,7 @@ class WgmGitHub_SetupSection extends Extension_PageSection {
 		$user = array_shift($users);
 		
 		$owners = DAO_GitHubRepository::getDistinctOwners();
-		var_dump($owners);
-		
 		$repositories = DAO_GitHubRepository::getWhere();
-		//var_dump($repositories);
 		
 		foreach($owners as $owner) {
 			$out = $github->get(
@@ -232,8 +199,6 @@ class WgmGitHub_SetupSection extends Extension_PageSection {
 			);
 			
 			if(false !== ($json = @json_decode($out, true))) {
-				//var_dump($json);
-				
 				foreach($json as $repo_json) {
 					if(!isset($repo_json['id'])) {
 						continue;
@@ -279,7 +244,6 @@ class WgmGitHub_SetupSection extends Extension_PageSection {
 								array(
 									'access_token' => $user['access_token'],
 									'state' => 'open',
-// 									'assignee' => '*',
 									'sort' => 'updated',
 									'direction' => 'desc',
 									'since' => gmdate('c', $repo->synced_at),
@@ -322,33 +286,6 @@ class WgmGitHub_SetupSection extends Extension_PageSection {
 		}
 	}
 	
-	function testIssuesAction() {
-		$github = WgmGitHub_API::getInstance();
-
-		$users = json_decode(DevblocksPlatform::getPluginSetting('wgm.github', 'users', ''), true);
-		$user = array_shift($users);
-		
-		
-		$out = $github->get(
-			sprintf("https://api.github.com/repos/%s/%s/issues",
-				urlencode('cerb-plugins'),
-				urlencode('wgm.profile.attachments')
-// 				urlencode('cerberusweb.datacenter.sensors')
-			),
-			array(
-				'access_token' => $user['access_token'],
-// 				'state' => 'open, closed',
-// 				'assignee' => '*',
-// 				'sort' => 'updated',
-// 				'direction' => 'desc',
-			)
-		);
-		
-		if(false !== ($json = @json_decode($out, true))) {
-			var_dump($json);
-		}		
-	}
-	
 	function authAction() {
 		@$callback = DevblocksPlatform::importGPC($_REQUEST['_callback'], 'bool', 0);
 
@@ -369,8 +306,6 @@ class WgmGitHub_SetupSection extends Extension_PageSection {
 					$out = $github->get(sprintf("https://api.github.com/user?access_token=%s", $token['access_token']));
 					
 					if(false !== ($json = @json_decode($out, true))) {
-						//var_dump($json);
-						
 						$json['access_token'] = $token['access_token'];
 						
 						//$users = json_decode(DevblocksPlatform::getPluginSetting('wgm.github', 'users', ''), true);
