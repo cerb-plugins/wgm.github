@@ -28,9 +28,9 @@ class DAO_GitHubIssue extends C4_ORMHelper {
 	
 	static function update($ids, $fields) {
 		parent::_update($ids, 'github_issue', $fields);
-		
+
 		// Log the context update
-	    //DevblocksPlatform::markContextChanged('example.context', $ids);
+		DevblocksPlatform::markContextChanged('cerberusweb.contexts.github.issue', $ids);
 	}
 	
 	static function updateWhere($fields, $where) {
@@ -364,7 +364,7 @@ class Model_GitHubIssue {
 	public $synced_at;
 };
 
-class View_GitHubIssue extends C4_AbstractView {
+class View_GitHubIssue extends C4_AbstractView implements IAbstractView_Subtotals {
 	const DEFAULT_ID = 'github_issue';
 
 	function __construct() {
@@ -415,6 +415,88 @@ class View_GitHubIssue extends C4_AbstractView {
 		return $this->_doGetDataSample('DAO_GitHubIssue', $size);
 	}
 
+	function getSubtotalFields() {
+		$all_fields = $this->getParamsAvailable();
+		
+		$fields = array();
+
+		if(is_array($all_fields))
+		foreach($all_fields as $field_key => $field_model) {
+			$pass = false;
+			
+			switch($field_key) {
+				// Fields
+				case SearchFields_GitHubIssue::GITHUB_REPOSITORY_ID:
+				case SearchFields_GitHubIssue::IS_CLOSED:
+				case SearchFields_GitHubIssue::MILESTONE:
+				case SearchFields_GitHubIssue::REPORTER_NAME:
+					$pass = true;
+					break;
+					
+				// Virtuals
+				case SearchFields_Task::VIRTUAL_CONTEXT_LINK:
+				case SearchFields_Task::VIRTUAL_WATCHERS:
+					$pass = true;
+					break;
+					
+				// Valid custom fields
+				default:
+					if('cf_' == substr($field_key,0,3))
+						$pass = $this->_canSubtotalCustomField($field_key);
+					break;
+			}
+			
+			if($pass)
+				$fields[$field_key] = $field_model;
+		}
+		
+		return $fields;
+	}
+	
+	function getSubtotalCounts($column) {
+		$counts = array();
+		$fields = $this->getFields();
+
+		if(!isset($fields[$column]))
+			return array();
+		
+		switch($column) {
+			case SearchFields_GitHubIssue::MILESTONE:
+			case SearchFields_GitHubIssue::REPORTER_NAME:
+				$counts = $this->_getSubtotalCountForStringColumn('DAO_GitHubIssue', $column);
+				break;
+				
+			case SearchFields_GitHubIssue::GITHUB_REPOSITORY_ID:
+				$label_map = array();
+				
+				$repositories = DAO_GitHubRepository::getWhere();
+				foreach($repositories as $repo) {
+					$label_map[$repo->id] = $repo->name;
+				}
+				
+				$counts = $this->_getSubtotalCountForStringColumn('DAO_GitHubIssue', $column, $label_map, 'in', 'options[]');
+				break;
+				
+			case SearchFields_GitHubIssue::IS_CLOSED:
+				$counts = $this->_getSubtotalCountForBooleanColumn('DAO_GitHubIssue', $column);
+				break;
+				
+// 			case SearchFields_GitHubIssue::VIRTUAL_WATCHERS:
+// 				$counts = $this->_getSubtotalCountForWatcherColumn('DAO_GitHubIssue', $column);
+// 				break;
+			
+			default:
+				// Custom fields
+				if('cf_' == substr($column,0,3)) {
+					$counts = $this->_getSubtotalCountForCustomColumn('DAO_GitHubIssue', $column, 'github_issue.id');
+				}
+				
+				break;
+		}
+		
+		return $counts;
+	}	
+	
 	function render() {
 		$this->_sanitize();
 		
@@ -430,7 +512,8 @@ class View_GitHubIssue extends C4_AbstractView {
 		$repositories = DAO_GitHubRepository::getWhere();
 		$tpl->assign('repositories', $repositories);
 		
-		$tpl->display('devblocks:wgm.github::issue/view.tpl');
+		$tpl->assign('view_template', 'devblocks:wgm.github::issue/view.tpl');
+		$tpl->display('devblocks:cerberusweb.core::internal/views/subtotals_and_view.tpl');
 	}
 
 	function renderCriteria($field) {

@@ -384,7 +384,7 @@ class Model_GitHubRepository {
 	public $synced_at;
 };
 
-class View_GitHubRepository extends C4_AbstractView {
+class View_GitHubRepository extends C4_AbstractView implements IAbstractView_Subtotals {
 	const DEFAULT_ID = 'github_repository';
 
 	function __construct() {
@@ -436,6 +436,75 @@ class View_GitHubRepository extends C4_AbstractView {
 		return $this->_doGetDataSample('DAO_GitHubRepository', $size);
 	}
 
+	function getSubtotalFields() {
+		$all_fields = $this->getParamsAvailable();
+		
+		$fields = array();
+
+		if(is_array($all_fields))
+		foreach($all_fields as $field_key => $field_model) {
+			$pass = false;
+			
+			switch($field_key) {
+				// Fields
+				case SearchFields_GitHubRepository::BRANCH:
+				case SearchFields_GitHubRepository::OWNER_GITHUB_NAME:
+					$pass = true;
+					break;
+					
+				// Virtuals
+				case SearchFields_Task::VIRTUAL_CONTEXT_LINK:
+				case SearchFields_Task::VIRTUAL_WATCHERS:
+					$pass = true;
+					break;
+					
+				// Valid custom fields
+				default:
+					if('cf_' == substr($field_key,0,3))
+						$pass = $this->_canSubtotalCustomField($field_key);
+					break;
+			}
+			
+			if($pass)
+				$fields[$field_key] = $field_model;
+		}
+		
+		return $fields;
+	}
+	
+	function getSubtotalCounts($column) {
+		$counts = array();
+		$fields = $this->getFields();
+
+		if(!isset($fields[$column]))
+			return array();
+		
+		switch($column) {
+			case SearchFields_GitHubRepository::BRANCH:
+			case SearchFields_GitHubRepository::OWNER_GITHUB_NAME:
+				$counts = $this->_getSubtotalCountForStringColumn('DAO_GitHubRepository', $column);
+				break;
+				
+			case SearchFields_GitHubRepository::VIRTUAL_CONTEXT_LINK:
+				$counts = $this->_getSubtotalCountForContextLinkColumn('DAO_GitHubRepository', 'cerberusweb.contexts.github.repository', $column);
+				break;
+				
+			case SearchFields_GitHubRepository::VIRTUAL_WATCHERS:
+				$counts = $this->_getSubtotalCountForWatcherColumn('DAO_GitHubRepository', $column);
+				break;
+			
+			default:
+				// Custom fields
+				if('cf_' == substr($column,0,3)) {
+					$counts = $this->_getSubtotalCountForCustomColumn('DAO_GitHubRepository', $column, 'github_repository.id');
+				}
+				
+				break;
+		}
+		
+		return $counts;
+	}	
+	
 	function render() {
 		$this->_sanitize();
 		
@@ -447,7 +516,8 @@ class View_GitHubRepository extends C4_AbstractView {
 		//$custom_fields = DAO_CustomField::getByContext(CerberusContexts::XXX);
 		//$tpl->assign('custom_fields', $custom_fields);
 
-		$tpl->display('devblocks:wgm.github::repository/view.tpl');
+		$tpl->assign('view_template', 'devblocks:wgm.github::repository/view.tpl');
+		$tpl->display('devblocks:cerberusweb.core::internal/views/subtotals_and_view.tpl');
 	}
 
 	function renderCriteria($field) {
