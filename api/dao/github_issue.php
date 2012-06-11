@@ -520,11 +520,22 @@ class View_GitHubIssue extends C4_AbstractView implements IAbstractView_Subtotal
 		$tpl->assign('id', $this->id);
 
 		switch($field) {
-			case SearchFields_GitHubIssue::GITHUB_REPOSITORY_ID:
 			case SearchFields_GitHubIssue::TITLE:
 			case SearchFields_GitHubIssue::REPORTER_NAME:
 			case SearchFields_GitHubIssue::MILESTONE:
 				$tpl->display('devblocks:cerberusweb.core::internal/views/criteria/__string.tpl');
+				break;
+				
+			case SearchFields_GitHubIssue::GITHUB_REPOSITORY_ID:
+				$options = array();
+
+				$repositories = DAO_GitHubRepository::getAll();
+				foreach($repositories as $repo_id => $repo) {
+					$options[$repo_id] = $repo->name;
+				}
+				
+				$tpl->assign('options', $options);
+				$tpl->display('devblocks:cerberusweb.core::internal/views/criteria/__list.tpl');
 				break;
 				
 			case SearchFields_GitHubIssue::ID:
@@ -563,6 +574,30 @@ class View_GitHubIssue extends C4_AbstractView implements IAbstractView_Subtotal
 		$values = !is_array($param->value) ? array($param->value) : $param->value;
 
 		switch($field) {
+			case SearchFields_GitHubIssue::GITHUB_REPOSITORY_ID:
+				$strings = array();
+				$repositories = DAO_GitHubRepository::getAll();
+				
+				foreach($values as $repo_id) {
+					if(isset($repositories[$repo_id])) {
+						$strings[] = $repositories[$repo_id]->name;
+					} else {
+						$strings[] = $repo_id;
+					}
+				}
+				
+				if(count($strings) > 2) {
+					echo sprintf("any of <abbr title='%s'>(%d repositor%s)</abbr>",
+						htmlentities(implode(', ', $strings)),
+						count($strings),
+						(count($strings)==1 ? 'y' : 'ies')
+					);
+				} else {
+					echo implode(' or ', $strings);
+				}
+				
+				break;
+				
 			case SearchFields_GitHubIssue::IS_CLOSED:
 				parent::_renderCriteriaParamBoolean($param);
 				break;
@@ -599,9 +634,13 @@ class View_GitHubIssue extends C4_AbstractView implements IAbstractView_Subtotal
 				
 			case SearchFields_GitHubIssue::GITHUB_ID:
 			case SearchFields_GitHubIssue::GITHUB_NUMBER:
-			case SearchFields_GitHubIssue::GITHUB_REPOSITORY_ID:
 			case SearchFields_GitHubIssue::REPORTER_GITHUB_ID:
 				$criteria = new DevblocksSearchCriteria($field,$oper,$value);
+				break;
+				
+			case SearchFields_GitHubIssue::GITHUB_REPOSITORY_ID:
+				@$options = DevblocksPlatform::importGPC($_REQUEST['options'],'array',array());
+				$criteria = new DevblocksSearchCriteria($field,$oper,$options);
 				break;
 				
 			case SearchFields_GitHubIssue::CREATED_AT:

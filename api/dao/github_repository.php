@@ -50,7 +50,7 @@ class DAO_GitHubRepository extends C4_ORMHelper {
 	static function getAll($nocache=false) {
 	    $cache = DevblocksPlatform::getCacheService();
 	    if($nocache || null === ($repositories = $cache->load(self::_CACHE_ALL))) {
-    	    $repositories = self::getWhere();
+    	    $repositories = self::getWhere(null, DAO_GitHubRepository::NAME, true);
     	    $cache->save($repositories, self::_CACHE_ALL);
 	    }
 	    
