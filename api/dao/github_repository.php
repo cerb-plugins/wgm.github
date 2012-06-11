@@ -1,5 +1,7 @@
 <?php
 class DAO_GitHubRepository extends C4_ORMHelper {
+	const _CACHE_ALL = 'cache_cerb_github_repository_all';
+	
 	const ID = 'id';
 	const GITHUB_ID = 'github_id';
 	const GITHUB_WATCHERS = 'github_watchers';
@@ -32,10 +34,27 @@ class DAO_GitHubRepository extends C4_ORMHelper {
 		
 		// Log the context update
 	    //DevblocksPlatform::markContextChanged('example.context', $ids);
+	    
+		self::clearCache();
 	}
 	
 	static function updateWhere($fields, $where) {
 		parent::_updateWhere('github_repository', $fields, $where);
+	}
+	
+	/**
+	 * 
+	 * @param bool $nocache
+	 * @return Model_GitHubRepository[]
+	 */
+	static function getAll($nocache=false) {
+	    $cache = DevblocksPlatform::getCacheService();
+	    if($nocache || null === ($repositories = $cache->load(self::_CACHE_ALL))) {
+    	    $repositories = self::getWhere();
+    	    $cache->save($repositories, self::_CACHE_ALL);
+	    }
+	    
+	    return $repositories;
 	}
 	
 	/**
@@ -75,6 +94,17 @@ class DAO_GitHubRepository extends C4_ORMHelper {
 			return $objects[$id];
 		
 		return null;
+	}
+	
+	static function getByGitHubId($remote_id) {
+		$repositories = DAO_GitHubRepository::getAll();
+		
+		foreach($repositories as $repo) { /* @var $repo Model_GitHubRepository */
+			if($repo->github_id == $remote_id)
+				return $repo->github_id;
+		}
+		
+		return false;
 	}
 	
 	static function getDistinctOwners() {
@@ -133,18 +163,18 @@ class DAO_GitHubRepository extends C4_ORMHelper {
 		$db->Execute(sprintf("DELETE FROM github_repository WHERE id IN (%s)", $ids_list));
 		
 		// Fire event
-		/*
 	    $eventMgr = DevblocksPlatform::getEventService();
 	    $eventMgr->trigger(
 	        new Model_DevblocksEvent(
 	            'context.delete',
                 array(
-                	'context' => 'cerberusweb.contexts.',
+                	'context' => 'cerberusweb.contexts.github.repository',
                 	'context_ids' => $ids
                 )
             )
 	    );
-	    */
+		
+		self::clearCache();
 		
 		return true;
 	}
@@ -310,6 +340,11 @@ class DAO_GitHubRepository extends C4_ORMHelper {
 		return array($results,$total);
 	}
 
+	static public function clearCache() {
+		$cache = DevblocksPlatform::getCacheService();
+		$cache->remove(self::_CACHE_ALL);
+	}
+	
 };
 
 class SearchFields_GitHubRepository implements IDevblocksSearchFields {

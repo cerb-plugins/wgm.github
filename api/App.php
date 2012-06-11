@@ -162,15 +162,10 @@ class WgmGitHub_SetupSection extends Extension_PageSection {
 				DAO_GitHubRepository::SYNCED_AT => time(),
 			);
 			
-			$matches = DAO_GitHubRepository::getWhere(
-				sprintf("%s = %s",
-					DAO_GitHubRepository::GITHUB_ID,
-					DAO_GitHubRepository::qstr($json['id'])
-				)
-			);
+			$local_repo = DAO_GitHubRepository::getByGitHubId($json['id']);
 			
-			if(!empty($matches)) {
-				DAO_GitHubRepository::update(key($matches), $fields);
+			if(!empty($local_repo)) {
+				DAO_GitHubRepository::update($local_repo->id, $fields);
 				
 			} else {
 				DAO_GitHubRepository::create($fields);
@@ -185,7 +180,7 @@ class WgmGitHub_SetupSection extends Extension_PageSection {
 		$user = array_shift($users);
 		
 		$owners = DAO_GitHubRepository::getDistinctOwners();
-		$repositories = DAO_GitHubRepository::getWhere();
+		$repositories = DAO_GitHubRepository::getAll();
 		
 		foreach($owners as $owner) {
 			$out = $github->get(

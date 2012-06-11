@@ -469,7 +469,7 @@ class View_GitHubIssue extends C4_AbstractView implements IAbstractView_Subtotal
 			case SearchFields_GitHubIssue::GITHUB_REPOSITORY_ID:
 				$label_map = array();
 				
-				$repositories = DAO_GitHubRepository::getWhere();
+				$repositories = DAO_GitHubRepository::getAll();
 				foreach($repositories as $repo) {
 					$label_map[$repo->id] = $repo->name;
 				}
@@ -508,8 +508,7 @@ class View_GitHubIssue extends C4_AbstractView implements IAbstractView_Subtotal
 		//$custom_fields = DAO_CustomField::getByContext(CerberusContexts::XXX);
 		//$tpl->assign('custom_fields', $custom_fields);
 
-		// [TODO] Cache!!
-		$repositories = DAO_GitHubRepository::getWhere();
+		$repositories = DAO_GitHubRepository::getAll();
 		$tpl->assign('repositories', $repositories);
 		
 		$tpl->assign('view_template', 'devblocks:wgm.github::issue/view.tpl');
