@@ -118,18 +118,16 @@ class DAO_GitHubIssue extends C4_ORMHelper {
 		$db->Execute(sprintf("DELETE FROM github_issue WHERE id IN (%s)", $ids_list));
 		
 		// Fire event
-		/*
 	    $eventMgr = DevblocksPlatform::getEventService();
 	    $eventMgr->trigger(
 	        new Model_DevblocksEvent(
 	            'context.delete',
                 array(
-                	'context' => 'cerberusweb.contexts.',
+                	'context' => 'cerberusweb.contexts.github.issue',
                 	'context_ids' => $ids
                 )
             )
 	    );
-	    */
 		
 		return true;
 	}
@@ -175,13 +173,13 @@ class DAO_GitHubIssue extends C4_ORMHelper {
 		$join_sql = "FROM github_issue ";
 		
 		// Custom field joins
-		//list($select_sql, $join_sql, $has_multiple_values) = self::_appendSelectJoinSqlForCustomFieldTables(
-		//	$tables,
-		//	$params,
-		//	'github_issue.id',
-		//	$select_sql,
-		//	$join_sql
-		//);
+		list($select_sql, $join_sql, $has_multiple_values) = self::_appendSelectJoinSqlForCustomFieldTables(
+			$tables,
+			$params,
+			'github_issue.id',
+			$select_sql,
+			$join_sql
+		);
 		$has_multiple_values = false; // [TODO] Temporary when custom fields disabled
 				
 		$where_sql = "".
@@ -333,13 +331,13 @@ class SearchFields_GitHubIssue implements IDevblocksSearchFields {
 		);
 		
 		// Custom Fields
-		//$fields = DAO_CustomField::getByContext(CerberusContexts::XXX);
+		$fields = DAO_CustomField::getByContext('cerberusweb.contexts.github.issue');
 
-		//if(is_array($fields))
-		//foreach($fields as $field_id => $field) {
-		//	$key = 'cf_'.$field_id;
-		//	$columns[$key] = new DevblocksSearchField($key,$key,'field_value',$field->name,$field->type);
-		//}
+		if(is_array($fields))
+		foreach($fields as $field_id => $field) {
+			$key = 'cf_'.$field_id;
+			$columns[$key] = new DevblocksSearchField($key,$key,'field_value',$field->name,$field->type);
+		}
 		
 		// Sort by label (translation-conscious)
 		DevblocksPlatform::sortObjects($columns, 'db_label');
@@ -505,8 +503,8 @@ class View_GitHubIssue extends C4_AbstractView implements IAbstractView_Subtotal
 		$tpl->assign('view', $this);
 
 		// Custom fields
-		//$custom_fields = DAO_CustomField::getByContext(CerberusContexts::XXX);
-		//$tpl->assign('custom_fields', $custom_fields);
+		$custom_fields = DAO_CustomField::getByContext('cerberusweb.contexts.github.issue');
+		$tpl->assign('custom_fields', $custom_fields);
 
 		$repositories = DAO_GitHubRepository::getAll();
 		$tpl->assign('repositories', $repositories);
@@ -556,7 +554,6 @@ class View_GitHubIssue extends C4_AbstractView implements IAbstractView_Subtotal
 				$tpl->display('devblocks:cerberusweb.core::internal/views/criteria/__date.tpl');
 				break;
 				
-			/*
 			default:
 				// Custom Fields
 				if('cf_' == substr($field,0,3)) {
@@ -565,7 +562,6 @@ class View_GitHubIssue extends C4_AbstractView implements IAbstractView_Subtotal
 					echo ' ';
 				}
 				break;
-			*/
 		}
 	}
 
@@ -655,14 +651,12 @@ class View_GitHubIssue extends C4_AbstractView implements IAbstractView_Subtotal
 				$criteria = new DevblocksSearchCriteria($field,$oper,$bool);
 				break;
 				
-			/*
 			default:
 				// Custom Fields
 				if(substr($field,0,3)=='cf_') {
 					$criteria = $this->_doSetCriteriaCustomField($field, substr($field,3));
 				}
 				break;
-			*/
 		}
 
 		if(!empty($criteria)) {
@@ -692,14 +686,13 @@ class View_GitHubIssue extends C4_AbstractView implements IAbstractView_Subtotal
 				case 'example':
 					//$change_fields[DAO_GitHubIssue::EXAMPLE] = 'some value';
 					break;
-				/*
+				
 				default:
 					// Custom fields
 					if(substr($k,0,3)=="cf_") {
 						$custom_fields[substr($k,3)] = $v;
 					}
 					break;
-				*/
 			}
 		}
 
@@ -729,7 +722,7 @@ class View_GitHubIssue extends C4_AbstractView implements IAbstractView_Subtotal
 			}
 
 			// Custom Fields
-			//self::_doBulkSetCustomFields(ChCustomFieldSource_GitHubIssue::ID, $custom_fields, $batch_ids);
+			self::_doBulkSetCustomFields('cerberusweb.contexts.github.issue', $custom_fields, $batch_ids);
 			
 			unset($batch_ids);
 		}

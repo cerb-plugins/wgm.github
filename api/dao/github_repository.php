@@ -222,13 +222,13 @@ class DAO_GitHubRepository extends C4_ORMHelper {
 		$join_sql = "FROM github_repository ";
 		
 		// Custom field joins
-		//list($select_sql, $join_sql, $has_multiple_values) = self::_appendSelectJoinSqlForCustomFieldTables(
-		//	$tables,
-		//	$params,
-		//	'github_repository.id',
-		//	$select_sql,
-		//	$join_sql
-		//);
+		list($select_sql, $join_sql, $has_multiple_values) = self::_appendSelectJoinSqlForCustomFieldTables(
+			$tables,
+			$params,
+			'github_repository.id',
+			$select_sql,
+			$join_sql
+		);
 		$has_multiple_values = false; // [TODO] Temporary when custom fields disabled
 				
 		$where_sql = "".
@@ -387,13 +387,13 @@ class SearchFields_GitHubRepository implements IDevblocksSearchFields {
 		);
 		
 		// Custom Fields
-		//$fields = DAO_CustomField::getByContext(CerberusContexts::XXX);
+		$fields = DAO_CustomField::getByContext('cerberusweb.contexts.github.repository');
 
-		//if(is_array($fields))
-		//foreach($fields as $field_id => $field) {
-		//	$key = 'cf_'.$field_id;
-		//	$columns[$key] = new DevblocksSearchField($key,$key,'field_value',$field->name,$field->type);
-		//}
+		if(is_array($fields))
+		foreach($fields as $field_id => $field) {
+			$key = 'cf_'.$field_id;
+			$columns[$key] = new DevblocksSearchField($key,$key,'field_value',$field->name,$field->type);
+		}
 		
 		// Sort by label (translation-conscious)
 		DevblocksPlatform::sortObjects($columns, 'db_label');
@@ -548,8 +548,8 @@ class View_GitHubRepository extends C4_AbstractView implements IAbstractView_Sub
 		$tpl->assign('view', $this);
 
 		// Custom fields
-		//$custom_fields = DAO_CustomField::getByContext(CerberusContexts::XXX);
-		//$tpl->assign('custom_fields', $custom_fields);
+		$custom_fields = DAO_CustomField::getByContext('cerberusweb.contexts.github.repository');
+		$tpl->assign('custom_fields', $custom_fields);
 
 		$tpl->assign('view_template', 'devblocks:wgm.github::repository/view.tpl');
 		$tpl->display('devblocks:cerberusweb.core::internal/views/subtotals_and_view.tpl');
@@ -587,7 +587,6 @@ class View_GitHubRepository extends C4_AbstractView implements IAbstractView_Sub
 				$tpl->display('devblocks:cerberusweb.core::internal/views/criteria/__date.tpl');
 				break;
 				
-			/*
 			default:
 				// Custom Fields
 				if('cf_' == substr($field,0,3)) {
@@ -596,7 +595,6 @@ class View_GitHubRepository extends C4_AbstractView implements IAbstractView_Sub
 					echo ' ';
 				}
 				break;
-			*/
 		}
 	}
 
@@ -656,14 +654,12 @@ class View_GitHubRepository extends C4_AbstractView implements IAbstractView_Sub
 				$criteria = new DevblocksSearchCriteria($field,$oper,$bool);
 				break;
 				
-			/*
 			default:
 				// Custom Fields
 				if(substr($field,0,3)=='cf_') {
 					$criteria = $this->_doSetCriteriaCustomField($field, substr($field,3));
 				}
 				break;
-			*/
 		}
 
 		if(!empty($criteria)) {
@@ -693,14 +689,13 @@ class View_GitHubRepository extends C4_AbstractView implements IAbstractView_Sub
 				case 'example':
 					//$change_fields[DAO_GitHubRepository::EXAMPLE] = 'some value';
 					break;
-				/*
+					
 				default:
 					// Custom fields
 					if(substr($k,0,3)=="cf_") {
 						$custom_fields[substr($k,3)] = $v;
 					}
 					break;
-				*/
 			}
 		}
 
@@ -730,7 +725,7 @@ class View_GitHubRepository extends C4_AbstractView implements IAbstractView_Sub
 			}
 
 			// Custom Fields
-			//self::_doBulkSetCustomFields(ChCustomFieldSource_GitHubRepository::ID, $custom_fields, $batch_ids);
+			self::_doBulkSetCustomFields('cerberusweb.contexts.github.repository', $custom_fields, $batch_ids);
 			
 			unset($batch_ids);
 		}
