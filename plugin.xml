@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<plugin xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.devblocks.com/schema/plugin.xsd">
+	<id>wgm.github</id>
+	<name>GitHub Integration</name>
+	<description>This plugin provides integration with GitHub via their API. This plugin is intended to be a bridge used by other plugins to communicate with GitHub services.  It introduces record types for GitHub Repositories and Issues.</description>
+	<author>WebGroup Media, LLC.</author>
+	<version>0.0.1</version>
+	<link>http://www.cerbweb.com/</link>
+	<image>plugin.png</image>
+ 
+ 	<!-- Requirements -->
+
+	<requires>
+		<app_version min="6.0" max="6.0.99" />
+		<php_extension name="oauth" />
+	</requires>
+ 
+	<!-- Plugin Dependencies -->
+	
+	<dependencies>
+		<require plugin_id="cerberusweb.core" version="6.0.0" />
+	</dependencies>
+
+	<!-- Patches -->
+	
+	<patches>
+		<patch version="6.0.0" revision="1" file="patches/6.0.0.php" />
+	</patches>
+	
+	<!-- Exported Classes -->
+	
+	<class_loader>
+		<file path="api/dao/github_issue.php">
+			<class name="Context_GitHubIssue" />
+			<class name="DAO_GitHubIssue" />
+			<class name="Model_GitHubIssue" />
+			<class name="SearchFields_GitHubIssue" />
+			<class name="View_GitHubIssue" />
+		</file>
+	
+		<file path="api/dao/github_repository.php">
+			<class name="Context_GitHubRepository" />
+			<class name="DAO_GitHubRepository" />
+			<class name="Model_GitHubRepository" />
+			<class name="SearchFields_GitHubRepository" />
+			<class name="View_GitHubRepository" />
+		</file>
+	</class_loader>
+
+	<!-- Extensions -->
+ 
+	<extensions>
+
+		<!-- Contexts -->
+
+		<extension point="devblocks.context">
+			<id>cerberusweb.contexts.github.issue</id>
+			<name>GitHub Issue</name>
+			<class>
+				<file>api/dao/github_issue.php</file>
+				<name>Context_GitHubIssue</name>
+			</class>
+			<params>
+				<param key="alias" value="github_issue" />
+				<param key="view_class" value="View_GitHubIssue" />
+				<param key="options">
+					<value>
+						<!--<data key="create" />-->
+						<data key="find" />
+						<!--<data key="snippets" />-->
+						<data key="workspace" />
+						<data key="va_variable" />
+					</value>
+				</param>
+			</params>
+		</extension>		
+
+		<extension point="devblocks.context">
+			<id>cerberusweb.contexts.github.repository</id>
+			<name>GitHub Repository</name>
+			<class>
+				<file>api/dao/github_repository.php</file>
+				<name>Context_GitHubRepository</name>
+			</class>
+			<params>
+				<param key="alias" value="github_repository" />
+				<param key="view_class" value="View_GitHubRepository" />
+				<param key="options">
+					<value>
+						<data key="create" />
+						<data key="find" />
+						<!--<data key="snippets" />-->
+						<data key="workspace" />
+						<data key="va_variable" />
+					</value>
+				</param>
+			</params>
+		</extension>		
+		
+		<!-- Setup Page Menu Item -->
+
+		<extension point="cerberusweb.ui.page.menu.item">
+			<id>wgmgithub.setup.menu.plugins.github</id>
+			<name>GitHub Plugins Menu Item</name>
+			<class>
+				<file>api/App.php</file>
+				<name>WgmGitHub_SetupPluginsMenuItem</name>
+			</class>
+			<params>
+				<param key="page_id" value="core.page.configuration" />
+				<param key="menu_id" value="core.setup.menu.plugins" />
+			</params>
+		</extension>
+		
+		<!-- Setup Page Sections -->
+		
+		<extension point="cerberusweb.ui.page.section">
+			<id>wgmgithub.setup.twitter</id>
+			<name>Setup Page GitHub Section</name>
+			<class>
+				<file>api/App.php</file>
+				<name>WgmGitHub_SetupSection</name>
+			</class>
+			<params>
+				<param key="page_id" value="core.page.configuration" />
+				<param key="uri" value="github" />
+			</params>
+		</extension>
+		
+    </extensions> 
+</plugin>
