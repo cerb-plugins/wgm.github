@@ -282,8 +282,7 @@ class WgmGitHub_SetupSection extends Extension_PageSection {
 // 									'assignee' => '*',
 									'sort' => 'updated',
 									'direction' => 'desc',
-									// [TODO] Use repository last sync date here (unless first check)
-// 									'since' => '',
+									'since' => gmdate('c', $repo->synced_at),
 								)
 							);
 							
@@ -297,7 +296,7 @@ class WgmGitHub_SetupSection extends Extension_PageSection {
 										DAO_GitHubIssue::IS_CLOSED => (0 == strcasecmp($json_issue['state'],'open') ? 0 : 1),
 										DAO_GitHubIssue::REPORTER_NAME => $json_issue['user']['login'],
 										DAO_GitHubIssue::REPORTER_GITHUB_ID => $json_issue['user']['id'],
-										DAO_GitHubIssue::MILESTONE => $json_issue['milestone'],
+										DAO_GitHubIssue::MILESTONE => $json_issue['milestone']['title'],
 										DAO_GitHubIssue::CREATED_AT => strtotime($json_issue['created_at']),
 										DAO_GitHubIssue::UPDATED_AT => strtotime($json_issue['updated_at']),
 										DAO_GitHubIssue::CLOSED_AT => strtotime($json_issue['closed_at']) ?: 0,
