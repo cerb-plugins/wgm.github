@@ -33,7 +33,7 @@ class DAO_GitHubRepository extends C4_ORMHelper {
 		parent::_update($ids, 'github_repository', $fields);
 		
 		// Log the context update
-	    //DevblocksPlatform::markContextChanged('example.context', $ids);
+	    DevblocksPlatform::markContextChanged('cerberusweb.contexts.github.repository', $ids);
 	    
 		self::clearCache();
 	}
@@ -101,7 +101,7 @@ class DAO_GitHubRepository extends C4_ORMHelper {
 		
 		foreach($repositories as $repo) { /* @var $repo Model_GitHubRepository */
 			if($repo->github_id == $remote_id)
-				return $repo->github_id;
+				return self::get($repo->id);
 		}
 		
 		return false;
@@ -502,6 +502,7 @@ class View_GitHubRepository extends C4_AbstractView implements IAbstractView_Sub
 			
 			if($pass)
 				$fields[$field_key] = $field_model;
+			
 		}
 		
 		return $fields;
