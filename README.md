@@ -1,4 +1,4 @@
-Cerb5 Plugins - wgm.github
+Cerb Plugins - wgm.github
 ===========================================
 Copyright (C) 2012 WebGroup Media, LLC.  
 [http://www.cerberusweb.com/](http://www.cerberusweb.com/)  

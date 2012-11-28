@@ -5,7 +5,7 @@
 	<description>This plugin provides integration with GitHub via their API. This plugin is intended to be a bridge used by other plugins to communicate with GitHub services.  It introduces record types for GitHub Repositories and Issues.</description>
 	<author>WebGroup Media, LLC.</author>
 	<version>0.0.1</version>
-	<link>http://www.cerbweb.com/</link>
+	<link>http://www.cerbweb.com/book/latest/plugins/wgm.github.html</link>
 	<image>plugin.png</image>
  
  	<!-- Requirements -->
@@ -62,6 +62,7 @@
 			</class>
 			<params>
 				<param key="alias" value="github_issue" />
+				<param key="dao_class" value="DAO_GitHubIssue" />
 				<param key="view_class" value="View_GitHubIssue" />
 				<param key="options">
 					<value>
@@ -84,6 +85,7 @@
 			</class>
 			<params>
 				<param key="alias" value="github_repository" />
+				<param key="dao_class" value="DAO_GitHubRepository" />
 				<param key="view_class" value="View_GitHubRepository" />
 				<param key="options">
 					<value>
