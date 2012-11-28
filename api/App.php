@@ -137,8 +137,8 @@ class WgmGitHub_SetupSection extends Extension_PageSection {
 		
 		$out = $github->get(
 			sprintf("https://api.github.com/repos/%s/%s",
-				urlencode('cerb-plugins'),
-				urlencode('wgm.freshbooks')
+				urlencode('wgm'),
+				urlencode('cronfire')
 			),
 			array(
 				'access_token' => $user['access_token'],
