@@ -1,5 +1,5 @@
 <?php
-class DAO_GitHubIssue extends C4_ORMHelper {
+class DAO_GitHubIssue extends Cerb_ORMHelper {
 	const ID = 'id';
 	const GITHUB_ID = 'github_id';
 	const GITHUB_NUMBER = 'github_number';

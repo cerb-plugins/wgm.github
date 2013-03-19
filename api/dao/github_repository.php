@@ -1,5 +1,5 @@
 <?php
-class DAO_GitHubRepository extends C4_ORMHelper {
+class DAO_GitHubRepository extends Cerb_ORMHelper {
 	const _CACHE_ALL = 'cache_cerb_github_repository_all';
 	
 	const ID = 'id';
