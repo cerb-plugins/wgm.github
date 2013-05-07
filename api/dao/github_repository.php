@@ -423,14 +423,14 @@ class SearchFields_GitHubRepository implements IDevblocksSearchFields {
 			self::SYNCED_AT => new DevblocksSearchField(self::SYNCED_AT, 'github_repository', 'synced_at', $translate->_('dao.github_repository.synced_at'), Model_CustomField::TYPE_DATE),
 		);
 		
-		// Custom Fields
-		$fields = DAO_CustomField::getByContext('cerberusweb.contexts.github.repository');
-
-		if(is_array($fields))
-		foreach($fields as $field_id => $field) {
-			$key = 'cf_'.$field_id;
-			$columns[$key] = new DevblocksSearchField($key,$key,'field_value',$field->name,$field->type);
-		}
+		// Custom fields with fieldsets
+		
+		$custom_columns = DevblocksSearchField::getCustomSearchFieldsByContexts(array(
+			'cerberusweb.contexts.github.repository',
+		));
+		
+		if(is_array($custom_columns))
+			$columns = array_merge($columns, $custom_columns);
 		
 		// Sort by label (translation-conscious)
 		DevblocksPlatform::sortObjects($columns, 'db_label');
@@ -509,7 +509,7 @@ class View_GitHubRepository extends C4_AbstractView implements IAbstractView_Sub
 	}
 
 	function getSubtotalFields() {
-		$all_fields = $this->getParamsAvailable();
+		$all_fields = $this->getParamsAvailable(true);
 		
 		$fields = array();
 
@@ -817,11 +817,10 @@ class Context_GitHubRepository extends Extension_DevblocksContext {
 			//'record_url' => $prefix.$translate->_('common.url.record'),
 		);
 		
-		if(is_array($fields))
-		foreach($fields as $cf_id => $field) {
-			$token_labels['custom_'.$cf_id] = $prefix.$field->name;
-		}
-
+		// Custom field/fieldset token labels
+		if(false !== ($custom_field_labels = $this->_getTokenLabelsFromCustomFields($fields, $prefix)) && is_array($custom_field_labels))
+			$token_labels = array_merge($token_labels, $custom_field_labels);
+		
 		// Token values
 		$token_values = array();
 		
