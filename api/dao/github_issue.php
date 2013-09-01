@@ -779,8 +779,6 @@ class Context_GitHubIssue extends Extension_DevblocksContext {
 		$issue = DAO_GitHubIssue::get($context_id);
 		$url_writer = DevblocksPlatform::getUrlService();
 		
-		//$friendly = DevblocksPlatform::strToPermalink($repo->name);
-		
 		return array(
 			'id' => $issue->id,
 			'name' => $issue->name,
@@ -788,16 +786,28 @@ class Context_GitHubIssue extends Extension_DevblocksContext {
 		);
 	}
 	
+	// [TODO] Interface
+	function getDefaultProperties() {
+		return array(
+			'github_repository__label',
+			'reporter_name',
+			'milestone',
+			'is_closed',
+			'created',
+			'updated',
+		);
+	}
+	
 	function getContext($issue, &$token_labels, &$token_values, $prefix=null) {
 		if(is_null($prefix))
-			$prefix = 'GitHub Repository:';
+			$prefix = 'GitHub Issue:';
 		
 		$translate = DevblocksPlatform::getTranslationService();
 		$fields = DAO_CustomField::getByContext(Context_GitHubIssue::ID);
 
 		// Polymorph
 		if(is_numeric($issue)) {
-			$issue = DAO_GitHubIssue::get($repo);
+			$issue = DAO_GitHubIssue::get($issue);
 		} elseif($issue instanceof Model_GitHubIssue) {
 			// It's what we want already.
 		} else {
@@ -806,11 +816,28 @@ class Context_GitHubIssue extends Extension_DevblocksContext {
 		
 		// Token labels
 		$token_labels = array(
-			'created|date' => $prefix.$translate->_('common.created'),
+			'_label' => $prefix,
+			'created' => $prefix.$translate->_('common.created'),
 			'id' => $prefix.$translate->_('common.id'),
-			'tritle' => $prefix.$translate->_('common.title'),
-			'updated|date' => $prefix.$translate->_('common.updated'),
+			'is_closed' => $prefix.$translate->_('dao.github_issue.is_closed'),
+			'milestone' => $prefix.$translate->_('dao.github_issue.milestone'),
+			'reporter_name' => $prefix.$translate->_('dao.github_issue.reporter_name'),
+			'title' => $prefix.$translate->_('common.title'),
+			'updated' => $prefix.$translate->_('common.updated'),
 			//'record_url' => $prefix.$translate->_('common.url.record'),
+		);
+		
+		// Token types
+		$token_types = array(
+			'_label' => 'context_url',
+			'created' => Model_CustomField::TYPE_DATE,
+			'id' => Model_CustomField::TYPE_NUMBER,
+			'is_closed' => Model_CustomField::TYPE_CHECKBOX,
+			'milestone' => Model_CustomField::TYPE_SINGLE_LINE,
+			'reporter_name' => Model_CustomField::TYPE_SINGLE_LINE,
+			'title' => Model_CustomField::TYPE_SINGLE_LINE,
+			'updated' => Model_CustomField::TYPE_DATE,
+			//'record_url' => Model_CustomField::TYPE_URL,
 		);
 		
 		// Custom field/fieldset token labels
@@ -821,19 +848,43 @@ class Context_GitHubIssue extends Extension_DevblocksContext {
 		$token_values = array();
 		
 		$token_values['_context'] = Context_GitHubIssue::ID;
+		$token_values['_types'] = $token_types;
 		
 		if($issue) {
 			$token_values['_loaded'] = true;
-			$token_values['_label'] = $issue->title;
+			$token_values['_label'] = sprintf("[#%d] %s",
+				$issue->github_number,
+				$issue->title
+			);
 			$token_values['created'] = $issue->created_at;
 			$token_values['id'] = $issue->id;
+			$token_values['is_closed'] = $issue->is_closed;
+			$token_values['milestone'] = $issue->milestone;
+			$token_values['reporter_name'] = $issue->reporter_name;
 			$token_values['title'] = $issue->title;
 			$token_values['updated'] = $issue->updated_at;
 			
 			// URL
 			//$url_writer = DevblocksPlatform::getUrlService();
 			//$token_values['record_url'] = $url_writer->writeNoProxy(sprintf("c=example.object&id=%d-%s",$tweet->id, DevblocksPlatform::strToPermalink($tweet->name)), true);
+			
+			// Repository
+			$token_values['github_repository_id'] = $issue->github_repository_id;
 		}
+		
+		// Feed
+		$merge_token_labels = array();
+		$merge_token_values = array();
+		CerberusContexts::getContext('cerberusweb.contexts.github.repository', null, $merge_token_labels, $merge_token_values, '', true);
+
+		CerberusContexts::merge(
+			'github_repository_',
+			'GitHub Repository:',
+			$merge_token_labels,
+			$merge_token_values,
+			$token_labels,
+			$token_values
+		);
 
 		return true;
 	}

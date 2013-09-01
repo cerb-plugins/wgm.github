@@ -792,6 +792,18 @@ class Context_GitHubRepository extends Extension_DevblocksContext {
 		);
 	}
 	
+	// [TODO] Interface
+	function getDefaultProperties() {
+		return array(
+			'owner_github_name',
+			'synced_at',
+			'pushed_at',
+			'description',
+			'github_forks',
+			'github_watchers',
+		);
+	}
+	
 	function getContext($repo, &$token_labels, &$token_values, $prefix=null) {
 		if(is_null($prefix))
 			$prefix = 'GitHub Repository:';
@@ -810,11 +822,36 @@ class Context_GitHubRepository extends Extension_DevblocksContext {
 		
 		// Token labels
 		$token_labels = array(
-			'created|date' => $prefix.$translate->_('common.created'),
+			'_label' => $prefix,
+			'created' => $prefix.$translate->_('common.created'),
+			'description' => $prefix.$translate->_('dao.github_repository.description'),
+			'github_forks' => $prefix.$translate->_('dao.github_repository.github_forks'),
+			'github_watchers' => $prefix.$translate->_('dao.github_repository.github_watchers'),
 			'id' => $prefix.$translate->_('common.id'),
 			'name' => $prefix.$translate->_('common.name'),
-			'updated|date' => $prefix.$translate->_('common.updated'),
+			'owner_github_name' => $prefix.$translate->_('common.owner'),
+			'pushed_at' => $prefix.$translate->_('dao.github_repository.pushed_at'),
+			'synced_at' => $prefix.$translate->_('dao.github_repository.synced_at'),
+			'updated' => $prefix.$translate->_('common.updated'),
+			'url' => $prefix.$translate->_('common.url'),
 			//'record_url' => $prefix.$translate->_('common.url.record'),
+		);
+		
+		// Token types
+		$token_types = array(
+			'_label' => 'context_url',
+			'created' => Model_CustomField::TYPE_DATE,
+			'description' => Model_CustomField::TYPE_SINGLE_LINE,
+			'github_forks' => Model_CustomField::TYPE_NUMBER,
+			'github_watchers' => Model_CustomField::TYPE_NUMBER,
+			'id' => Model_CustomField::TYPE_NUMBER,
+			'name' => Model_CustomField::TYPE_SINGLE_LINE,
+			'owner_github_name' => Model_CustomField::TYPE_SINGLE_LINE,
+			'pushed_at' => Model_CustomField::TYPE_DATE,
+			'synced_at' => Model_CustomField::TYPE_DATE,
+			'updated' => Model_CustomField::TYPE_DATE,
+			'url' => Model_CustomField::TYPE_URL,
+			//'record_url' => Model_CustomField::TYPE_URL,
 		);
 		
 		// Custom field/fieldset token labels
@@ -825,20 +862,28 @@ class Context_GitHubRepository extends Extension_DevblocksContext {
 		$token_values = array();
 		
 		$token_values['_context'] = Context_GitHubRepository::ID;
+		$token_values['_types'] = $token_types;
 		
 		if($repo) {
 			$token_values['_loaded'] = true;
 			$token_values['_label'] = $repo->name;
 			$token_values['created'] = $repo->created_at;
+			$token_values['description'] = $repo->description;
+			$token_values['github_forks'] = $repo->github_forks;
+			$token_values['github_watchers'] = $repo->github_watchers;
 			$token_values['id'] = $repo->id;
 			$token_values['name'] = $repo->name;
+			$token_values['owner_github_name'] = $repo->owner_github_name;
+			$token_values['pushed_at'] = $repo->pushed_at;
+			$token_values['synced_at'] = $repo->synced_at;
 			$token_values['updated'] = $repo->updated_at;
+			$token_values['url'] = $repo->url;
 			
 			// URL
 			//$url_writer = DevblocksPlatform::getUrlService();
 			//$token_values['record_url'] = $url_writer->writeNoProxy(sprintf("c=example.object&id=%d-%s",$tweet->id, DevblocksPlatform::strToPermalink($tweet->name)), true);
 		}
-
+		
 		return true;
 	}
 
