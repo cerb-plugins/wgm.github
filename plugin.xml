@@ -4,7 +4,7 @@
 	<name>GitHub Integration</name>
 	<description>This plugin provides integration with GitHub via their API. This plugin is intended to be a bridge used by other plugins to communicate with GitHub services.  It introduces record types for GitHub Repositories and Issues.</description>
 	<author>Webgroup Media, LLC.</author>
-	<version>0.0.8</version>
+	<version>0.0.9</version>
 	<link>http://www.cerbweb.com/book/latest/plugins/wgm.github.html</link>
 	<image>plugin.png</image>
  
