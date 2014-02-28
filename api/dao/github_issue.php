@@ -621,7 +621,7 @@ class View_GitHubIssue extends C4_AbstractView implements IAbstractView_Subtotal
 				
 				if(count($strings) > 2) {
 					echo sprintf("any of <abbr title='%s'>(%d repositor%s)</abbr>",
-						htmlentities(implode(', ', $strings)),
+						htmlentities(implode(', ', $strings), ENT_QUOTES, LANG_CHARSET_CODE),
 						count($strings),
 						(count($strings)==1 ? 'y' : 'ies')
 					);
