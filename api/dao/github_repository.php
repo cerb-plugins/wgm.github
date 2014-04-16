@@ -39,17 +39,17 @@ class DAO_GitHubRepository extends Cerb_ORMHelper {
 		while($batch_ids = array_shift($chunks)) {
 			if(empty($batch_ids))
 				continue;
-			
-			// Get state before changes
-			$object_changes = parent::_getUpdateDeltas($batch_ids, $fields, get_class());
+
+			// Send events
+			if($check_deltas) {
+				CerberusContexts::checkpointChanges('cerberusweb.contexts.github.repository', $batch_ids);
+			}
 
 			// Make changes
 			parent::_update($batch_ids, 'github_repository', $fields);
 			
 			// Send events
-			if(!empty($object_changes)) {
-				// Local events
-				//self::_processUpdateEvents($object_changes);
+			if($check_deltas) {
 				
 				// Trigger an event about the changes
 				$eventMgr = DevblocksPlatform::getEventService();
@@ -57,7 +57,7 @@ class DAO_GitHubRepository extends Cerb_ORMHelper {
 					new Model_DevblocksEvent(
 						'dao.github_repository.update',
 						array(
-							'objects' => $object_changes,
+							'fields' => $fields,
 						)
 					)
 				);
@@ -80,13 +80,13 @@ class DAO_GitHubRepository extends Cerb_ORMHelper {
 	 * @return Model_GitHubRepository[]
 	 */
 	static function getAll($nocache=false) {
-	    $cache = DevblocksPlatform::getCacheService();
-	    if($nocache || null === ($repositories = $cache->load(self::_CACHE_ALL))) {
-    	    $repositories = self::getWhere(null, DAO_GitHubRepository::NAME, true);
-    	    $cache->save($repositories, self::_CACHE_ALL);
-	    }
-	    
-	    return $repositories;
+		$cache = DevblocksPlatform::getCacheService();
+		if($nocache || null === ($repositories = $cache->load(self::_CACHE_ALL))) {
+			$repositories = self::getWhere(null, DAO_GitHubRepository::NAME, true);
+			$cache->save($repositories, self::_CACHE_ALL);
+		}
+		
+		return $repositories;
 	}
 	
 	/**
@@ -183,6 +183,10 @@ class DAO_GitHubRepository extends Cerb_ORMHelper {
 		return $objects;
 	}
 	
+	static function random() {
+		return self::_getRandom('github_repository');
+	}
+	
 	static function delete($ids) {
 		if(!is_array($ids)) $ids = array($ids);
 		$db = DevblocksPlatform::getDatabaseService();
@@ -195,16 +199,16 @@ class DAO_GitHubRepository extends Cerb_ORMHelper {
 		$db->Execute(sprintf("DELETE FROM github_repository WHERE id IN (%s)", $ids_list));
 		
 		// Fire event
-	    $eventMgr = DevblocksPlatform::getEventService();
-	    $eventMgr->trigger(
-	        new Model_DevblocksEvent(
-	            'context.delete',
-                array(
-                	'context' => 'cerberusweb.contexts.github.repository',
-                	'context_ids' => $ids
-                )
-            )
-	    );
+		$eventMgr = DevblocksPlatform::getEventService();
+		$eventMgr->trigger(
+			new Model_DevblocksEvent(
+				'context.delete',
+				array(
+					'context' => 'cerberusweb.contexts.github.repository',
+					'context_ids' => $ids
+				)
+			)
+		);
 		
 		self::clearCache();
 		
@@ -218,7 +222,7 @@ class DAO_GitHubRepository extends Cerb_ORMHelper {
 		if('*'==substr($sortBy,0,1) || !isset($fields[$sortBy]))
 			$sortBy=null;
 
-        list($tables,$wheres) = parent::_parseSearchParams($params, $columns, $fields, $sortBy);
+		list($tables,$wheres) = parent::_parseSearchParams($params, $columns, $fields, $sortBy);
 		
 		$select_sql = sprintf("SELECT ".
 			"github_repository.id as %s, ".
@@ -313,19 +317,19 @@ class DAO_GitHubRepository extends Cerb_ORMHelper {
 		}
 	}
 	
-    /**
-     * Enter description here...
-     *
-     * @param array $columns
-     * @param DevblocksSearchCriteria[] $params
-     * @param integer $limit
-     * @param integer $page
-     * @param string $sortBy
-     * @param boolean $sortAsc
-     * @param boolean $withCounts
-     * @return array
-     */
-    static function search($columns, $params, $limit=10, $page=0, $sortBy=null, $sortAsc=null, $withCounts=true) {
+	/**
+	 * Enter description here...
+	 *
+	 * @param array $columns
+	 * @param DevblocksSearchCriteria[] $params
+	 * @param integer $limit
+	 * @param integer $page
+	 * @param string $sortBy
+	 * @param boolean $sortAsc
+	 * @param boolean $withCounts
+	 * @return array
+	 */
+	static function search($columns, $params, $limit=10, $page=0, $sortBy=null, $sortAsc=null, $withCounts=true) {
 		$db = DevblocksPlatform::getDatabaseService();
 		
 		// Build search queries
@@ -345,14 +349,13 @@ class DAO_GitHubRepository extends Cerb_ORMHelper {
 			$sort_sql;
 			
 		if($limit > 0) {
-    		$rs = $db->SelectLimit($sql,$limit,$page*$limit) or die(__CLASS__ . '('.__LINE__.')'. ':' . $db->ErrorMsg()); /* @var $rs ADORecordSet */
+			$rs = $db->SelectLimit($sql,$limit,$page*$limit) or die(__CLASS__ . '('.__LINE__.')'. ':' . $db->ErrorMsg()); /* @var $rs ADORecordSet */
 		} else {
-		    $rs = $db->Execute($sql) or die(__CLASS__ . '('.__LINE__.')'. ':' . $db->ErrorMsg()); /* @var $rs ADORecordSet */
-            $total = mysqli_num_rows($rs);
+			$rs = $db->Execute($sql) or die(__CLASS__ . '('.__LINE__.')'. ':' . $db->ErrorMsg()); /* @var $rs ADORecordSet */
+			$total = mysqli_num_rows($rs);
 		}
 		
 		$results = array();
-		$total = -1;
 		
 		while($row = mysqli_fetch_assoc($rs)) {
 			$result = array();
@@ -363,13 +366,17 @@ class DAO_GitHubRepository extends Cerb_ORMHelper {
 			$results[$object_id] = $result;
 		}
 
-		// [JAS]: Count all
+		$total = count($results);
+		
 		if($withCounts) {
-			$count_sql =
-				($has_multiple_values ? "SELECT COUNT(DISTINCT github_repository.id) " : "SELECT COUNT(github_repository.id) ").
-				$join_sql.
-				$where_sql;
-			$total = $db->GetOne($count_sql);
+			// We can skip counting if we have a less-than-full single page
+			if(!(0 == $page && $total < $limit)) {
+				$count_sql =
+					($has_multiple_values ? "SELECT COUNT(DISTINCT github_repository.id) " : "SELECT COUNT(github_repository.id) ").
+					$join_sql.
+					$where_sql;
+				$total = $db->GetOne($count_sql);
+			}
 		}
 		
 		mysqli_free_result($rs);
@@ -776,7 +783,7 @@ class Context_GitHubRepository extends Extension_DevblocksContext {
 	const ID = 'cerberusweb.contexts.github.repository';
 	
 	function getRandom() {
-		//return DAO_GitHubRepository::random();
+		return DAO_GitHubRepository::random();
 	}
 	
 	function getMeta($context_id) {
@@ -838,6 +845,8 @@ class Context_GitHubRepository extends Extension_DevblocksContext {
 			$repo = DAO_GitHubRepository::get($repo);
 		} elseif($repo instanceof Model_GitHubRepository) {
 			// It's what we want already.
+		} elseif(is_array($repo)) {
+			$repo = Cerb_ORMHelper::recastArrayToModel($repo, 'Model_GitHubRepository');
 		} else {
 			$repo = null;
 		}
@@ -904,6 +913,9 @@ class Context_GitHubRepository extends Extension_DevblocksContext {
 			$token_values['synced_at'] = $repo->synced_at;
 			$token_values['updated'] = $repo->updated_at;
 			$token_values['url'] = $repo->url;
+			
+			// Custom fields
+			$token_values = $this->_importModelCustomFieldsAsValues($repo, $token_values);
 			
 			// URL
 			//$url_writer = DevblocksPlatform::getUrlService();
