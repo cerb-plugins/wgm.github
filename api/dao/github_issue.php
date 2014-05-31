@@ -920,7 +920,7 @@ class Context_GitHubIssue extends Extension_DevblocksContext {
 
 		CerberusContexts::merge(
 			'github_repository_',
-			'GitHub Repository:',
+			$prefix.'GitHub Repository:',
 			$merge_token_labels,
 			$merge_token_values,
 			$token_labels,
