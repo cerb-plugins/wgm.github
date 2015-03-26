@@ -21,7 +21,7 @@ class DAO_GitHubRepository extends Cerb_ORMHelper {
 		$db = DevblocksPlatform::getDatabaseService();
 		
 		$sql = "INSERT INTO github_repository () VALUES ()";
-		$db->Execute($sql);
+		$db->ExecuteMaster($sql);
 		$id = $db->LastInsertId();
 		
 		self::update($id, $fields);
@@ -82,7 +82,13 @@ class DAO_GitHubRepository extends Cerb_ORMHelper {
 	static function getAll($nocache=false) {
 		$cache = DevblocksPlatform::getCacheService();
 		if($nocache || null === ($repositories = $cache->load(self::_CACHE_ALL))) {
-			$repositories = self::getWhere(null, DAO_GitHubRepository::NAME, true);
+			$repositories = self::getWhere(
+				null,
+				DAO_GitHubRepository::NAME,
+				true,
+				null,
+				Cerb_ORMHelper::OPT_GET_MASTER_ONLY
+			);
 			$cache->save($repositories, self::_CACHE_ALL);
 		}
 		
@@ -96,7 +102,7 @@ class DAO_GitHubRepository extends Cerb_ORMHelper {
 	 * @param integer $limit
 	 * @return Model_GitHubRepository[]
 	 */
-	static function getWhere($where=null, $sortBy=null, $sortAsc=true, $limit=null) {
+	static function getWhere($where=null, $sortBy=DAO_GitHubRepository::NAME, $sortAsc=true, $limit=null, $options=null) {
 		$db = DevblocksPlatform::getDatabaseService();
 
 		list($where_sql, $sort_sql, $limit_sql) = self::_getWhereSQL($where, $sortBy, $sortAsc, $limit);
@@ -108,7 +114,12 @@ class DAO_GitHubRepository extends Cerb_ORMHelper {
 			$sort_sql.
 			$limit_sql
 		;
-		$rs = $db->Execute($sql);
+
+		if($options & Cerb_ORMHelper::OPT_GET_MASTER_ONLY) {
+			$rs = $db->ExecuteMaster($sql);
+		} else {
+			$rs = $db->ExecuteSlave($sql);
+		}
 		
 		return self::_getObjectsFromResult($rs);
 	}
@@ -117,6 +128,9 @@ class DAO_GitHubRepository extends Cerb_ORMHelper {
 	 * @param integer $id
 	 * @return Model_GitHubRepository	 */
 	static function get($id) {
+		if(empty($id))
+			return null;
+		
 		$objects = self::getWhere(sprintf("%s = %d",
 			self::ID,
 			$id
@@ -143,7 +157,7 @@ class DAO_GitHubRepository extends Cerb_ORMHelper {
 		$db = DevblocksPlatform::getDatabaseService();
 		$results = array();
 		
-		$rows = $db->GetArray("SELECT DISTINCT owner_github_name FROM github_repository");
+		$rows = $db->GetArraySlave("SELECT DISTINCT owner_github_name FROM github_repository");
 		
 		foreach($rows as $row) {
 			$results[] = $row['owner_github_name'];
@@ -196,7 +210,7 @@ class DAO_GitHubRepository extends Cerb_ORMHelper {
 		
 		$ids_list = implode(',', $ids);
 		
-		$db->Execute(sprintf("DELETE FROM github_repository WHERE id IN (%s)", $ids_list));
+		$db->ExecuteMaster(sprintf("DELETE FROM github_repository WHERE id IN (%s)", $ids_list));
 		
 		// Fire event
 		$eventMgr = DevblocksPlatform::getEventService();
@@ -349,9 +363,9 @@ class DAO_GitHubRepository extends Cerb_ORMHelper {
 			$sort_sql;
 			
 		if($limit > 0) {
-			$rs = $db->SelectLimit($sql,$limit,$page*$limit) or die(__CLASS__ . '('.__LINE__.')'. ':' . $db->ErrorMsg()); /* @var $rs ADORecordSet */
+			$rs = $db->SelectLimit($sql,$limit,$page*$limit) or die(__CLASS__ . '('.__LINE__.')'. ':' . $db->ErrorMsg()); /* @var $rs mysqli_result */
 		} else {
-			$rs = $db->Execute($sql) or die(__CLASS__ . '('.__LINE__.')'. ':' . $db->ErrorMsg()); /* @var $rs ADORecordSet */
+			$rs = $db->ExecuteSlave($sql) or die(__CLASS__ . '('.__LINE__.')'. ':' . $db->ErrorMsg()); /* @var $rs mysqli_result */
 			$total = mysqli_num_rows($rs);
 		}
 		
@@ -371,7 +385,7 @@ class DAO_GitHubRepository extends Cerb_ORMHelper {
 					($has_multiple_values ? "SELECT COUNT(DISTINCT github_repository.id) " : "SELECT COUNT(github_repository.id) ").
 					$join_sql.
 					$where_sql;
-				$total = $db->GetOne($count_sql);
+				$total = $db->GetOneSlave($count_sql);
 			}
 		}
 		
@@ -1059,7 +1073,6 @@ class Context_GitHubRepository extends Extension_DevblocksContext {
 		$view->renderLimit = 10;
 		$view->renderTemplate = 'contextlinks_chooser';
 		$view->renderFilters = false;
-		C4_AbstractViewLoader::setView($view_id, $view);
 		return $view;
 	}
 	
@@ -1083,7 +1096,6 @@ class Context_GitHubRepository extends Extension_DevblocksContext {
 		$view->addParamsRequired($params_req, true);
 		
 		$view->renderTemplate = 'context';
-		C4_AbstractViewLoader::setView($view_id, $view);
 		return $view;
 	}
 };

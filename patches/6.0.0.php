@@ -27,7 +27,7 @@ if(!isset($tables['github_repository'])) {
 			INDEX updated_at (updated_at)
 		) ENGINE=%s;
 	", APP_DB_ENGINE);
-	$db->Execute($sql);
+	$db->ExecuteMaster($sql);
 
 	$tables['github_repository'] = 'github_repository';
 }
@@ -57,7 +57,7 @@ if(!isset($tables['github_issue'])) {
 			INDEX updated_at (updated_at)
 		) ENGINE=%s;
 	", APP_DB_ENGINE);
-	$db->Execute($sql);
+	$db->ExecuteMaster($sql);
 
 	$tables['github_issue'] = 'github_issue';
 }
