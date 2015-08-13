@@ -8,6 +8,7 @@
 <input type="hidden" name="a" value="handleSectionAction">
 <input type="hidden" name="section" value="github">
 <input type="hidden" name="action" value="saveJson">
+<input type="hidden" name="_csrf_token" value="{$session.csrf_token}">
 
 <fieldset>
 	<legend>Authentication</legend>
@@ -30,6 +31,7 @@
 <input type="hidden" name="a" value="handleSectionAction">
 <input type="hidden" name="section" value="github">
 <input type="hidden" name="action" value="auth">
+<input type="hidden" name="_csrf_token" value="{$session.csrf_token}">
 <fieldset>
 	<legend>GitHub Authorization</legend>
 	<input type="submit" class="submit" value="Sign in with GitHub">
