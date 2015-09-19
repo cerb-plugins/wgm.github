@@ -326,7 +326,7 @@ class WgmGitHub_SetupSection extends Extension_PageSection {
 				exit;
 				
 			} catch(OAuthException $e) {
-				echo "Exception: " . $e->getMessage();
+				echo "Exception: " . DevblocksPlatform::strEscapeHtml($e->getMessage());
 			}
 		}
 	}

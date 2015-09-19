@@ -4,14 +4,14 @@
 	<name>GitHub Integration</name>
 	<description>This plugin provides integration with GitHub via their API. This plugin is intended to be a bridge used by other plugins to communicate with GitHub services.  It introduces record types for GitHub Repositories and Issues.</description>
 	<author>Webgroup Media, LLC.</author>
-	<version>0.0.24</version>
+	<version>0.0.25</version>
 	<link>http://www.cerbweb.com/book/latest/plugins/wgm.github.html</link>
 	<image>plugin.png</image>
  
  	<!-- Requirements -->
 
 	<requires>
-		<app_version min="7.0.4" max="7.0.99" />
+		<app_version min="7.1" max="7.1.99" />
 		<php_extension name="oauth" />
 	</requires>
  
@@ -61,6 +61,12 @@
 				<name>Context_GitHubIssue</name>
 			</class>
 			<params>
+				<param key="names">
+					<value>
+						<data key="github issue" value="singular" />
+						<data key="github issues" value="plural" />
+					</value>
+				</param>
 				<param key="alias" value="github_issue" />
 				<param key="dao_class" value="DAO_GitHubIssue" />
 				<param key="view_class" value="View_GitHubIssue" />
@@ -84,6 +90,14 @@
 				<name>Context_GitHubRepository</name>
 			</class>
 			<params>
+				<param key="names">
+					<value>
+						<data key="github repository" value="singular" />
+						<data key="github repositories" value="plural" />
+						<data key="repository" value="singular short" />
+						<data key="repositories" value="plural short" />
+					</value>
+				</param>
 				<param key="alias" value="github_repository" />
 				<param key="dao_class" value="DAO_GitHubRepository" />
 				<param key="view_class" value="View_GitHubRepository" />

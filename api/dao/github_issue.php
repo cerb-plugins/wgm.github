@@ -699,7 +699,7 @@ class View_GitHubIssue extends C4_AbstractView implements IAbstractView_Subtotal
 				
 				foreach($values as $repo_id) {
 					if(isset($repositories[$repo_id])) {
-						$strings[] = $repositories[$repo_id]->name;
+						$strings[] = DevblocksPlatform::strEscapeHtml($repositories[$repo_id]->name);
 					} else {
 						$strings[] = intval($repo_id);
 					}
@@ -707,7 +707,7 @@ class View_GitHubIssue extends C4_AbstractView implements IAbstractView_Subtotal
 				
 				if(count($strings) > 2) {
 					echo sprintf("any of <abbr title='%s'>(%d repositor%s)</abbr>",
-						htmlentities(implode(', ', $strings), ENT_QUOTES, LANG_CHARSET_CODE),
+						DevblocksPlatform::strEscapeHtml(implode(', ', $strings)),
 						count($strings),
 						(count($strings)==1 ? 'y' : 'ies')
 					);
