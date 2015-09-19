@@ -316,7 +316,7 @@ class WgmGitHub_SetupSection extends Extension_PageSection {
 			}
 		} else {
 			try {
-				$oauth_callback_url = $url_writer->write('ajax.php?c=config&a=handleSectionAction&section=github&action=auth&_callback=true', true);
+				$oauth_callback_url = $url_writer->write('ajax.php?c=config&a=handleSectionAction&section=github&action=auth&_callback=true&_csrf_token=' . $_SESSION['csrf_token'], true);
 				
 				header('Location: ' . sprintf("%s?client_id=%s&redirect_uri=%s",
 					WgmGitHub_API::OAUTH_AUTHENTICATE_URL,

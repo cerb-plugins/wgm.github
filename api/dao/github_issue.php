@@ -701,7 +701,7 @@ class View_GitHubIssue extends C4_AbstractView implements IAbstractView_Subtotal
 					if(isset($repositories[$repo_id])) {
 						$strings[] = $repositories[$repo_id]->name;
 					} else {
-						$strings[] = $repo_id;
+						$strings[] = intval($repo_id);
 					}
 				}
 				
