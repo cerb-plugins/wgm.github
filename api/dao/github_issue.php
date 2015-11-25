@@ -869,6 +869,7 @@ class Context_GitHubIssue extends Extension_DevblocksContext {
 			'id' => $issue->id,
 			'name' => $issue->name,
 			'permalink' => $url_writer->writeNoProxy(sprintf("c=profiles&=type=github_issue&id=%d",$context_id), true),
+			'updated' => $issue->updated_at,
 		);
 	}
 	

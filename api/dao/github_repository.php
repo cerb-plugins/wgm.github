@@ -884,6 +884,7 @@ class Context_GitHubRepository extends Extension_DevblocksContext {
 			'id' => $repo->id,
 			'name' => $repo->name,
 			'permalink' => $url_writer->writeNoProxy(sprintf("c=profiles&=type=github_repository&id=%d",$context_id), true),
+			'updated' => $repo->updated_at,
 		);
 	}
 	
