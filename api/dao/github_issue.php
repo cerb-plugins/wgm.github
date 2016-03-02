@@ -118,6 +118,9 @@ class DAO_GitHubIssue extends Cerb_ORMHelper {
 	static private function _getObjectsFromResult($rs) {
 		$objects = array();
 		
+		if(!($rs instanceof mysqli_result))
+			return false;
+		
 		while($row = mysqli_fetch_assoc($rs)) {
 			$object = new Model_GitHubIssue();
 			$object->id = $row['id'];
@@ -174,10 +177,6 @@ class DAO_GitHubIssue extends Cerb_ORMHelper {
 	public static function getSearchQueryComponents($columns, $params, $sortBy=null, $sortAsc=null) {
 		$fields = SearchFields_GitHubIssue::getFields();
 		
-		// Sanitize
-		if('*'==substr($sortBy,0,1) || !isset($fields[$sortBy]))
-			$sortBy=null;
-
 		list($tables,$wheres) = parent::_parseSearchParams($params, $columns, $fields, $sortBy);
 		
 		$select_sql = sprintf("SELECT ".
@@ -224,7 +223,7 @@ class DAO_GitHubIssue extends Cerb_ORMHelper {
 		$where_sql = "".
 			(!empty($wheres) ? sprintf("WHERE %s ",implode(' AND ',$wheres)) : "WHERE 1 ");
 			
-		$sort_sql = (!empty($sortBy)) ? sprintf("ORDER BY %s %s ",$sortBy,($sortAsc || is_null($sortAsc))?"ASC":"DESC") : " ";
+		$sort_sql = self::_buildSortClause($sortBy, $sortAsc, $fields);
 	
 		// Virtuals
 		
@@ -303,11 +302,16 @@ class DAO_GitHubIssue extends Cerb_ORMHelper {
 			$sort_sql;
 			
 		if($limit > 0) {
-			$rs = $db->SelectLimit($sql,$limit,$page*$limit) or die(__CLASS__ . '('.__LINE__.')'. ':' . $db->ErrorMsg()); /* @var $rs mysqli_result */
+			if(false == ($rs = $db->SelectLimit($sql,$limit,$page*$limit)))
+				return false;
 		} else {
-			$rs = $db->ExecuteSlave($sql) or die(__CLASS__ . '('.__LINE__.')'. ':' . $db->ErrorMsg()); /* @var $rs mysqli_result */
+			if(false == ($rs = $db->ExecuteSlave($sql)))
+				return false;
 			$total = mysqli_num_rows($rs);
 		}
+		
+		if(!($rs instanceof mysqli_result))
+			return false;
 		
 		$results = array();
 		
@@ -358,19 +362,19 @@ class SearchFields_GitHubIssue implements IDevblocksSearchFields {
 		$translate = DevblocksPlatform::getTranslationService();
 		
 		$columns = array(
-			self::ID => new DevblocksSearchField(self::ID, 'github_issue', 'id', $translate->_('common.id'), null),
-			self::GITHUB_ID => new DevblocksSearchField(self::GITHUB_ID, 'github_issue', 'github_id', $translate->_('dao.github_issue.github_id'), null),
-			self::GITHUB_NUMBER => new DevblocksSearchField(self::GITHUB_NUMBER, 'github_issue', 'github_number', $translate->_('dao.github_issue.github_number'), Model_CustomField::TYPE_NUMBER),
-			self::GITHUB_REPOSITORY_ID => new DevblocksSearchField(self::GITHUB_REPOSITORY_ID, 'github_issue', 'github_repository_id', $translate->_('dao.github_issue.github_repository_id'), null),
-			self::TITLE => new DevblocksSearchField(self::TITLE, 'github_issue', 'title', $translate->_('common.title'), Model_CustomField::TYPE_SINGLE_LINE),
-			self::IS_CLOSED => new DevblocksSearchField(self::IS_CLOSED, 'github_issue', 'is_closed', $translate->_('dao.github_issue.is_closed'), Model_CustomField::TYPE_CHECKBOX),
-			self::REPORTER_NAME => new DevblocksSearchField(self::REPORTER_NAME, 'github_issue', 'reporter_name', $translate->_('dao.github_issue.reporter_name'), Model_CustomField::TYPE_SINGLE_LINE),
-			self::REPORTER_GITHUB_ID => new DevblocksSearchField(self::REPORTER_GITHUB_ID, 'github_issue', 'reporter_github_id', $translate->_('dao.github_issue.reporter_github_id'), null),
-			self::MILESTONE => new DevblocksSearchField(self::MILESTONE, 'github_issue', 'milestone', $translate->_('dao.github_issue.milestone'), Model_CustomField::TYPE_SINGLE_LINE),
-			self::CREATED_AT => new DevblocksSearchField(self::CREATED_AT, 'github_issue', 'created_at', $translate->_('common.created'), Model_CustomField::TYPE_DATE),
-			self::UPDATED_AT => new DevblocksSearchField(self::UPDATED_AT, 'github_issue', 'updated_at', $translate->_('common.updated'), Model_CustomField::TYPE_DATE),
-			self::CLOSED_AT => new DevblocksSearchField(self::CLOSED_AT, 'github_issue', 'closed_at', $translate->_('dao.github_issue.closed_at'), Model_CustomField::TYPE_DATE),
-			self::SYNCED_AT => new DevblocksSearchField(self::SYNCED_AT, 'github_issue', 'synced_at', $translate->_('dao.github_issue.synced_at'), Model_CustomField::TYPE_DATE),
+			self::ID => new DevblocksSearchField(self::ID, 'github_issue', 'id', $translate->_('common.id'), null, true),
+			self::GITHUB_ID => new DevblocksSearchField(self::GITHUB_ID, 'github_issue', 'github_id', $translate->_('dao.github_issue.github_id'), null, true),
+			self::GITHUB_NUMBER => new DevblocksSearchField(self::GITHUB_NUMBER, 'github_issue', 'github_number', $translate->_('dao.github_issue.github_number'), Model_CustomField::TYPE_NUMBER, true),
+			self::GITHUB_REPOSITORY_ID => new DevblocksSearchField(self::GITHUB_REPOSITORY_ID, 'github_issue', 'github_repository_id', $translate->_('dao.github_issue.github_repository_id'), null, true),
+			self::TITLE => new DevblocksSearchField(self::TITLE, 'github_issue', 'title', $translate->_('common.title'), Model_CustomField::TYPE_SINGLE_LINE, true),
+			self::IS_CLOSED => new DevblocksSearchField(self::IS_CLOSED, 'github_issue', 'is_closed', $translate->_('dao.github_issue.is_closed'), Model_CustomField::TYPE_CHECKBOX, true),
+			self::REPORTER_NAME => new DevblocksSearchField(self::REPORTER_NAME, 'github_issue', 'reporter_name', $translate->_('dao.github_issue.reporter_name'), Model_CustomField::TYPE_SINGLE_LINE, true),
+			self::REPORTER_GITHUB_ID => new DevblocksSearchField(self::REPORTER_GITHUB_ID, 'github_issue', 'reporter_github_id', $translate->_('dao.github_issue.reporter_github_id'), null, true),
+			self::MILESTONE => new DevblocksSearchField(self::MILESTONE, 'github_issue', 'milestone', $translate->_('dao.github_issue.milestone'), Model_CustomField::TYPE_SINGLE_LINE, true),
+			self::CREATED_AT => new DevblocksSearchField(self::CREATED_AT, 'github_issue', 'created_at', $translate->_('common.created'), Model_CustomField::TYPE_DATE, true),
+			self::UPDATED_AT => new DevblocksSearchField(self::UPDATED_AT, 'github_issue', 'updated_at', $translate->_('common.updated'), Model_CustomField::TYPE_DATE, true),
+			self::CLOSED_AT => new DevblocksSearchField(self::CLOSED_AT, 'github_issue', 'closed_at', $translate->_('dao.github_issue.closed_at'), Model_CustomField::TYPE_DATE, true),
+			self::SYNCED_AT => new DevblocksSearchField(self::SYNCED_AT, 'github_issue', 'synced_at', $translate->_('dao.github_issue.synced_at'), Model_CustomField::TYPE_DATE, true),
 		);
 		
 		// Custom fields with fieldsets
@@ -541,6 +545,8 @@ class View_GitHubIssue extends C4_AbstractView implements IAbstractView_Subtotal
 	// [TODO] Repository
 	
 	function getQuickSearchFields() {
+		$search_fields = SearchFields_GitHubIssue::getFields();
+		
 		$fields = array(
 			'_fulltext' => 
 				array(
@@ -593,6 +599,10 @@ class View_GitHubIssue extends C4_AbstractView implements IAbstractView_Subtotal
 		
 		$fields = self::_appendFieldsFromQuickSearchContext('cerberusweb.contexts.github.issue', $fields, null);
 		
+		// Add is_sortable
+		
+		$fields = self::_setSortableQuickSearchFields($fields, $search_fields);
+		
 		// Sort by keys
 		
 		ksort($fields);
@@ -611,9 +621,6 @@ class View_GitHubIssue extends C4_AbstractView implements IAbstractView_Subtotal
 				// ...
 			}
 		}
-		
-		$this->renderPage = 0;
-		$this->addParams($params, true);
 		
 		return $params;
 	}

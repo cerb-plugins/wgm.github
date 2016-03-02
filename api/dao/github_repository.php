@@ -89,6 +89,10 @@ class DAO_GitHubRepository extends Cerb_ORMHelper {
 				null,
 				Cerb_ORMHelper::OPT_GET_MASTER_ONLY
 			);
+			
+			if(!is_array($repositories))
+				return false;
+			
 			$cache->save($repositories, self::_CACHE_ALL);
 		}
 		
@@ -173,6 +177,9 @@ class DAO_GitHubRepository extends Cerb_ORMHelper {
 	static private function _getObjectsFromResult($rs) {
 		$objects = array();
 		
+		if(!($rs instanceof mysqli_result))
+			return false;
+		
 		while($row = mysqli_fetch_assoc($rs)) {
 			$object = new Model_GitHubRepository();
 			$object->id = $row['id'];
@@ -232,10 +239,6 @@ class DAO_GitHubRepository extends Cerb_ORMHelper {
 	public static function getSearchQueryComponents($columns, $params, $sortBy=null, $sortAsc=null) {
 		$fields = SearchFields_GitHubRepository::getFields();
 		
-		// Sanitize
-		if('*'==substr($sortBy,0,1) || !isset($fields[$sortBy]))
-			$sortBy=null;
-
 		list($tables,$wheres) = parent::_parseSearchParams($params, $columns, $fields, $sortBy);
 		
 		$select_sql = sprintf("SELECT ".
@@ -284,7 +287,7 @@ class DAO_GitHubRepository extends Cerb_ORMHelper {
 		$where_sql = "".
 			(!empty($wheres) ? sprintf("WHERE %s ",implode(' AND ',$wheres)) : "WHERE 1 ");
 			
-		$sort_sql = (!empty($sortBy)) ? sprintf("ORDER BY %s %s ",$sortBy,($sortAsc || is_null($sortAsc))?"ASC":"DESC") : " ";
+		$sort_sql = self::_buildSortClause($sortBy, $sortAsc, $fields);
 	
 		// Virtuals
 		
@@ -363,11 +366,16 @@ class DAO_GitHubRepository extends Cerb_ORMHelper {
 			$sort_sql;
 			
 		if($limit > 0) {
-			$rs = $db->SelectLimit($sql,$limit,$page*$limit) or die(__CLASS__ . '('.__LINE__.')'. ':' . $db->ErrorMsg()); /* @var $rs mysqli_result */
+			if(false == ($rs = $db->SelectLimit($sql,$limit,$page*$limit)))
+				return false;
 		} else {
-			$rs = $db->ExecuteSlave($sql) or die(__CLASS__ . '('.__LINE__.')'. ':' . $db->ErrorMsg()); /* @var $rs mysqli_result */
+			if(false == ($rs = $db->ExecuteSlave($sql)))
+				return false;
 			$total = mysqli_num_rows($rs);
 		}
+		
+		if(!($rs instanceof mysqli_result))
+			return false;
 		
 		$results = array();
 		
@@ -424,20 +432,20 @@ class SearchFields_GitHubRepository implements IDevblocksSearchFields {
 		$translate = DevblocksPlatform::getTranslationService();
 		
 		$columns = array(
-			self::ID => new DevblocksSearchField(self::ID, 'github_repository', 'id', $translate->_('common.id'), null),
-			self::GITHUB_ID => new DevblocksSearchField(self::GITHUB_ID, 'github_repository', 'github_id', $translate->_('dao.github_repository.github_id'), null),
-			self::GITHUB_WATCHERS => new DevblocksSearchField(self::GITHUB_WATCHERS, 'github_repository', 'github_watchers', $translate->_('dao.github_repository.github_watchers'), Model_CustomField::TYPE_NUMBER),
-			self::GITHUB_FORKS => new DevblocksSearchField(self::GITHUB_FORKS, 'github_repository', 'github_forks', $translate->_('dao.github_repository.github_forks'), Model_CustomField::TYPE_NUMBER),
-			self::OWNER_GITHUB_ID => new DevblocksSearchField(self::OWNER_GITHUB_ID, 'github_repository', 'owner_github_id', $translate->_('dao.github_repository.owner_github_id'), null),
-			self::OWNER_GITHUB_NAME => new DevblocksSearchField(self::OWNER_GITHUB_NAME, 'github_repository', 'owner_github_name', $translate->_('dao.github_repository.owner_github_name'), Model_CustomField::TYPE_SINGLE_LINE),
-			self::NAME => new DevblocksSearchField(self::NAME, 'github_repository', 'name', $translate->_('common.name'), Model_CustomField::TYPE_SINGLE_LINE),
-			self::DESCRIPTION => new DevblocksSearchField(self::DESCRIPTION, 'github_repository', 'description', $translate->_('dao.github_repository.description'), Model_CustomField::TYPE_MULTI_LINE),
-			self::BRANCH => new DevblocksSearchField(self::BRANCH, 'github_repository', 'branch', $translate->_('dao.github_repository.branch'), Model_CustomField::TYPE_SINGLE_LINE),
-			self::URL => new DevblocksSearchField(self::URL, 'github_repository', 'url', $translate->_('common.url'), Model_CustomField::TYPE_SINGLE_LINE),
-			self::CREATED_AT => new DevblocksSearchField(self::CREATED_AT, 'github_repository', 'created_at', $translate->_('common.created'), Model_CustomField::TYPE_DATE),
-			self::UPDATED_AT => new DevblocksSearchField(self::UPDATED_AT, 'github_repository', 'updated_at', $translate->_('common.updated'), Model_CustomField::TYPE_DATE),
-			self::PUSHED_AT => new DevblocksSearchField(self::PUSHED_AT, 'github_repository', 'pushed_at', $translate->_('dao.github_repository.pushed_at'), Model_CustomField::TYPE_DATE),
-			self::SYNCED_AT => new DevblocksSearchField(self::SYNCED_AT, 'github_repository', 'synced_at', $translate->_('dao.github_repository.synced_at'), Model_CustomField::TYPE_DATE),
+			self::ID => new DevblocksSearchField(self::ID, 'github_repository', 'id', $translate->_('common.id'), null, true),
+			self::GITHUB_ID => new DevblocksSearchField(self::GITHUB_ID, 'github_repository', 'github_id', $translate->_('dao.github_repository.github_id'), null, true),
+			self::GITHUB_WATCHERS => new DevblocksSearchField(self::GITHUB_WATCHERS, 'github_repository', 'github_watchers', $translate->_('dao.github_repository.github_watchers'), Model_CustomField::TYPE_NUMBER, true),
+			self::GITHUB_FORKS => new DevblocksSearchField(self::GITHUB_FORKS, 'github_repository', 'github_forks', $translate->_('dao.github_repository.github_forks'), Model_CustomField::TYPE_NUMBER, true),
+			self::OWNER_GITHUB_ID => new DevblocksSearchField(self::OWNER_GITHUB_ID, 'github_repository', 'owner_github_id', $translate->_('dao.github_repository.owner_github_id'), null, true),
+			self::OWNER_GITHUB_NAME => new DevblocksSearchField(self::OWNER_GITHUB_NAME, 'github_repository', 'owner_github_name', $translate->_('dao.github_repository.owner_github_name'), Model_CustomField::TYPE_SINGLE_LINE, true),
+			self::NAME => new DevblocksSearchField(self::NAME, 'github_repository', 'name', $translate->_('common.name'), Model_CustomField::TYPE_SINGLE_LINE, true),
+			self::DESCRIPTION => new DevblocksSearchField(self::DESCRIPTION, 'github_repository', 'description', $translate->_('dao.github_repository.description'), Model_CustomField::TYPE_MULTI_LINE, true),
+			self::BRANCH => new DevblocksSearchField(self::BRANCH, 'github_repository', 'branch', $translate->_('dao.github_repository.branch'), Model_CustomField::TYPE_SINGLE_LINE, true),
+			self::URL => new DevblocksSearchField(self::URL, 'github_repository', 'url', $translate->_('common.url'), Model_CustomField::TYPE_SINGLE_LINE, true),
+			self::CREATED_AT => new DevblocksSearchField(self::CREATED_AT, 'github_repository', 'created_at', $translate->_('common.created'), Model_CustomField::TYPE_DATE, true),
+			self::UPDATED_AT => new DevblocksSearchField(self::UPDATED_AT, 'github_repository', 'updated_at', $translate->_('common.updated'), Model_CustomField::TYPE_DATE, true),
+			self::PUSHED_AT => new DevblocksSearchField(self::PUSHED_AT, 'github_repository', 'pushed_at', $translate->_('dao.github_repository.pushed_at'), Model_CustomField::TYPE_DATE, true),
+			self::SYNCED_AT => new DevblocksSearchField(self::SYNCED_AT, 'github_repository', 'synced_at', $translate->_('dao.github_repository.synced_at'), Model_CustomField::TYPE_DATE, true),
 		);
 		
 		// Custom fields with fieldsets
@@ -596,7 +604,9 @@ class View_GitHubRepository extends C4_AbstractView implements IAbstractView_Sub
 	}
 	
 	function getQuickSearchFields() {
-		return array(
+		$search_fields = SearchFields_GitHubRepository::getFields();
+		
+		$fields = array(
 			'_fulltext' => 
 				array(
 					'type' => DevblocksSearchCriteria::TYPE_TEXT,
@@ -653,6 +663,20 @@ class View_GitHubRepository extends C4_AbstractView implements IAbstractView_Sub
 					'options' => array('param_key' => SearchFields_GitHubRepository::UPDATED_AT),
 				),
 		);
+		
+		// Add searchable custom fields
+		
+		$fields = self::_appendFieldsFromQuickSearchContext('cerberusweb.contexts.github.repository', $fields, null);
+		
+		// Add is_sortable
+		
+		$fields = self::_setSortableQuickSearchFields($fields, $search_fields);
+		
+		// Sort by keys
+		
+		ksort($fields);
+		
+		return $fields;
 	}	
 	
 	function getParamsFromQuickSearchFields($fields) {
@@ -666,9 +690,6 @@ class View_GitHubRepository extends C4_AbstractView implements IAbstractView_Sub
 				// ...
 			}
 		}
-		
-		$this->renderPage = 0;
-		$this->addParams($params, true);
 		
 		return $params;
 	}
