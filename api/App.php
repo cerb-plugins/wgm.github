@@ -1,16 +1,20 @@
 <?php
 class WgmGitHub_API {
+	const BASE_URL = "https://api.github.com/";
 	const OAUTH_ACCESS_TOKEN_URL = "https://github.com/login/oauth/access_token";
 	const OAUTH_AUTHENTICATE_URL = "https://github.com/login/oauth/authorize";
-	//const OAUTH_ACCESS_TOKEN_URL = "https://api.github.com/user?access_token=";
 	
 	static $_instance = null;
 	private $_oauth = null;
 	
 	private function __construct() {
-		$consumer_key = DevblocksPlatform::getPluginSetting('wgm.github','consumer_key','');
-		$consumer_secret = DevblocksPlatform::getPluginSetting('wgm.github','consumer_secret','');
-		$this->_oauth = new OAuth($consumer_key, $consumer_secret);
+		if(false == ($credentials = DevblocksPlatform::getPluginSetting('wgm.github','credentials',false,true,true)))
+			return;
+		
+		if(!isset($credentials['consumer_key']) || !isset($credentials['consumer_secret']))
+			return;
+		
+		$this->_oauth = DevblocksPlatform::getOAuthService($credentials['consumer_key'], $credentials['consumer_secret']);
 	}
 	
 	/**
@@ -24,51 +28,21 @@ class WgmGitHub_API {
 		return self::$_instance;
 	}
 	
-	public function setCredentials($token, $secret) {		
-		$this->_oauth->setToken($token, $secret);
+	public function setToken($token) {
+		$this->_oauth->setTokens($token);
 	}
 	
-	public function getAccessToken($consumer_key, $consumer_secret, $code, $redirect_uri=null) {
-		return $this->_oauth->getAccessToken(sprintf("%s?client_id=%s&client_secret=%s&code=%s",
-			self::OAUTH_ACCESS_TOKEN_URL,
-			urlencode($consumer_key),
-			urlencode($consumer_secret),
-			urlencode($code)
-		));
+	public function post($path, $params) {
+		return $this->_fetch($path, 'POST', $params);
 	}
 	
-// 	public function getRequestToken($callback_url) {
-// 		return $this->_oauth->getRequestToken(self::OAUTH_REQUEST_TOKEN_URL, $callback_url);
-// 	}
-	
-	public function post($url, $content) {
-		$params = array(
-			'status' => $content,		
-		);
-		
-		return $this->_fetch($url, 'POST', $params);
+	public function get($path) {
+		return $this->_fetch($path, 'GET');
 	}
 	
-	public function get($url, $params=array()) {
-		return $this->_fetch($url, 'GET', $params);
-	}
-	
-	private function _fetch($url, $method = 'GET', $params = array()) {
-		switch($method) {
-			case 'POST':
-				$method = OAUTH_HTTP_METHOD_POST;
-				break;
-				
-			default:
-				$method = OAUTH_HTTP_METHOD_GET;
-				break;
-		}
-
-		$this->_oauth->fetch($url, $params, $method);
-		
-		//var_dump($this->_oauth->getLastResponseInfo());
-		
-		return $this->_oauth->getLastResponse();
+	private function _fetch($path, $method = 'GET', $params = array()) {
+		$url = self::BASE_URL . ltrim($path, '/');
+		return $this->_oauth->executeRequestWithToken($method, $url, $params, 'token');
 	}
 };
 
@@ -89,22 +63,13 @@ class WgmGitHub_SetupSection extends Extension_PageSection {
 	const ID = 'wgmgithub.setup.github';
 	
 	function render() {
-		// check whether extensions are loaded or not
-		$extensions = array(
-			'oauth' => extension_loaded('oauth')
-		);
 		$tpl = DevblocksPlatform::getTemplateService();
 
 		$visit = CerberusApplication::getVisit();
 		$visit->set(ChConfigurationPage::ID, 'github');
 		
-		$params = array(
-			'consumer_key' => DevblocksPlatform::getPluginSetting('wgm.github','consumer_key',''),
-			'consumer_secret' => DevblocksPlatform::getPluginSetting('wgm.github','consumer_secret',''),
-			'users' => json_decode(DevblocksPlatform::getPluginSetting('wgm.github', 'users', ''), TRUE),
-		);
-		$tpl->assign('params', $params);
-		$tpl->assign('extensions', $extensions);
+		$credentials = DevblocksPlatform::getPluginSetting('wgm.github','credentials',false,true,true);
+		$tpl->assign('credentials', $credentials);
 		
 		$tpl->display('devblocks:wgm.github::setup/index.tpl');
 	}
@@ -115,221 +80,156 @@ class WgmGitHub_SetupSection extends Extension_PageSection {
 			@$consumer_secret = DevblocksPlatform::importGPC($_REQUEST['consumer_secret'],'string','');
 			
 			if(empty($consumer_key) || empty($consumer_secret))
-				throw new Exception("Both the API Auth Token and URL are required.");
+				throw new Exception("Both the 'Client ID' and 'Client Secret' are required.");
+
+			$credentials = [
+				'consumer_key' => $consumer_key,
+				'consumer_secret' => $consumer_secret,
+			];
 			
-			DevblocksPlatform::setPluginSetting('wgm.github','consumer_key',$consumer_key);
-			DevblocksPlatform::setPluginSetting('wgm.github','consumer_secret',$consumer_secret);
+			DevblocksPlatform::setPluginSetting('wgm.github', 'credentials', $credentials, true, true);
 			
-		    echo json_encode(array('status'=>true,'message'=>'Saved!'));
-		    return;
+			echo json_encode(array('status'=>true, 'message'=>'Saved!'));
+			return;
 			
 		} catch (Exception $e) {
-			echo json_encode(array('status'=>false,'error'=>$e->getMessage()));
+			echo json_encode(array('status'=>false, 'error'=>$e->getMessage()));
 			return;
-		}
-	}
-	
-	function testRepoAction() {
-		$github = WgmGitHub_API::getInstance();
-
-		$users = json_decode(DevblocksPlatform::getPluginSetting('wgm.github', 'users', ''), true);
-		$user = array_shift($users);
-		
-		$out = $github->get(
-			sprintf("https://api.github.com/repos/%s/%s",
-				urlencode('wgm'),
-				urlencode('cronfire')
-			),
-			array(
-				'access_token' => $user['access_token'],
-			)
-		);
-		
-		if(false !== ($json = @json_decode($out, true))) {
-			$fields = array(
-				DAO_GitHubRepository::GITHUB_ID => $json['id'],
-				DAO_GitHubRepository::NAME => $json['name'],
-				DAO_GitHubRepository::CREATED_AT => strtotime($json['created_at']),
-				DAO_GitHubRepository::BRANCH => @$json['master_branch'],
-				DAO_GitHubRepository::DESCRIPTION => $json['description'],
-				DAO_GitHubRepository::GITHUB_FORKS => $json['forks'],
-				DAO_GitHubRepository::GITHUB_WATCHERS => $json['watchers'],
-				DAO_GitHubRepository::PUSHED_AT => strtotime($json['pushed_at']),
-				DAO_GitHubRepository::UPDATED_AT=> strtotime($json['updated_at']),
-				DAO_GitHubRepository::URL => $json['html_url'],
-				DAO_GitHubRepository::OWNER_GITHUB_ID => $json['owner']['id'],
-				DAO_GitHubRepository::OWNER_GITHUB_NAME => $json['owner']['login'],
-				DAO_GitHubRepository::SYNCED_AT => time(),
-			);
-			
-			$local_repo = DAO_GitHubRepository::getByGitHubId($json['id']);
-			
-			if(!empty($local_repo)) {
-				DAO_GitHubRepository::update($local_repo->id, $fields);
-				
-			} else {
-				DAO_GitHubRepository::create($fields);
-			}
-		}
-	}
-	
-	function updateReposAction() {
-		$github = WgmGitHub_API::getInstance();
-
-		$users = json_decode(DevblocksPlatform::getPluginSetting('wgm.github', 'users', ''), true);
-		$user = array_shift($users);
-		
-		$owners = DAO_GitHubRepository::getDistinctOwners();
-		$repositories = DAO_GitHubRepository::getAll();
-		
-		foreach($owners as $owner) {
-			$out = $github->get(
-				sprintf("https://api.github.com/users/%s/repos",
-					$owner
-				),
-				array(
-					'access_token' => $user['access_token'],
-					'type' => 'owner',
-				)
-			);
-			
-			if(false !== ($json = @json_decode($out, true))) {
-				foreach($json as $repo_json) {
-					if(!isset($repo_json['id'])) {
-						continue;
-					}
-					
-					$fields = array(
-						DAO_GitHubRepository::GITHUB_ID => $repo_json['id'],
-						DAO_GitHubRepository::NAME => $repo_json['name'],
-						DAO_GitHubRepository::CREATED_AT => strtotime($repo_json['created_at']),
-						DAO_GitHubRepository::BRANCH => @$repo_json['master_branch'],
-						DAO_GitHubRepository::DESCRIPTION => $repo_json['description'],
-						DAO_GitHubRepository::GITHUB_FORKS => $repo_json['forks'],
-						DAO_GitHubRepository::GITHUB_WATCHERS => $repo_json['watchers'],
-						DAO_GitHubRepository::PUSHED_AT => strtotime($repo_json['pushed_at']),
-						DAO_GitHubRepository::UPDATED_AT => strtotime($repo_json['updated_at']),
-						DAO_GitHubRepository::SYNCED_AT => time(),
-						DAO_GitHubRepository::URL => $repo_json['html_url'],
-						DAO_GitHubRepository::OWNER_GITHUB_ID => $repo_json['owner']['id'],
-						DAO_GitHubRepository::OWNER_GITHUB_NAME => $repo_json['owner']['login'],
-					);
-					
-					$is_local = false;
-					
-					foreach($repositories as $repo) { /* @var $repo Model_GitHubRepository */
-						if($repo->github_id == $fields[DAO_GitHubRepository::GITHUB_ID]) {
-							$is_local = intval($repo->id);
-							break;
-						}
-					}
-						
-					if($is_local) {
-						DAO_GitHubRepository::update($is_local, $fields);
-						
-						// [TODO] Detect closed issues if existing and not in open issues
-						
-						// Check issues
-						if($repo_json['has_issues'] == 'true') {
-							$out_issues = $github->get(
-								sprintf("https://api.github.com/repos/%s/%s/issues",
-									urlencode($owner),
-									urlencode($repo_json['name'])
-								),
-								array(
-									'access_token' => $user['access_token'],
-									'state' => 'open',
-									'sort' => 'updated',
-									'direction' => 'desc',
-									'since' => gmdate('c', $repo->synced_at),
-								)
-							);
-							
-							if(false !== ($json_issues = @json_decode($out_issues, true))) {
-								foreach($json_issues as $json_issue) {
-									$fields = array(
-										DAO_GitHubIssue::GITHUB_ID => $json_issue['id'],
-										DAO_GitHubIssue::GITHUB_NUMBER => $json_issue['number'],
-										DAO_GitHubIssue::GITHUB_REPOSITORY_ID => $is_local,
-										DAO_GitHubIssue::TITLE => $json_issue['title'],
-										DAO_GitHubIssue::IS_CLOSED => (0 == strcasecmp($json_issue['state'],'open') ? 0 : 1),
-										DAO_GitHubIssue::REPORTER_NAME => $json_issue['user']['login'],
-										DAO_GitHubIssue::REPORTER_GITHUB_ID => $json_issue['user']['id'],
-										DAO_GitHubIssue::MILESTONE => $json_issue['milestone']['title'],
-										DAO_GitHubIssue::CREATED_AT => strtotime($json_issue['created_at']),
-										DAO_GitHubIssue::UPDATED_AT => strtotime($json_issue['updated_at']),
-										DAO_GitHubIssue::CLOSED_AT => strtotime($json_issue['closed_at']) ?: 0,
-										DAO_GitHubIssue::SYNCED_AT => time(),
-									);
-									
-									$results = DAO_GitHubIssue::getWhere(sprintf("%s = %d", DAO_GitHubIssue::GITHUB_ID, $json_issue['id']));
-									
-									// Check if new or update
-									if(empty($results)) {
-										$issue_id = DAO_GitHubIssue::create($fields);
-										
-									} else {
-										DAO_GitHubIssue::update(array_keys($results), $fields);
-										
-									}
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-	
-	function authAction() {
-		@$callback = DevblocksPlatform::importGPC($_REQUEST['_callback'], 'bool', 0);
-
-		$github = WgmGitHub_API::getInstance();
-		
-		$url_writer = DevblocksPlatform::getUrlService();
-		
-		$consumer_key = DevblocksPlatform::getPluginSetting('wgm.github','consumer_key','');
-		$consumer_secret = DevblocksPlatform::getPluginSetting('wgm.github','consumer_secret','');
-		
-		if($callback) {
-			if(isset($_REQUEST['code'])) {
-				$code = DevblocksPlatform::importGPC($_REQUEST['code'],'string','');
-				
-				$token = $github->getAccessToken($consumer_key, $consumer_secret, $code);
-
-				if(isset($token['access_token'])) {
-					$out = $github->get(sprintf("https://api.github.com/user?access_token=%s", $token['access_token']));
-					
-					if(false !== ($json = @json_decode($out, true))) {
-						$json['access_token'] = $token['access_token'];
-						
-						//$users = json_decode(DevblocksPlatform::getPluginSetting('wgm.github', 'users', ''), true);
-						
-						$users = array(
-							$json['id'] => $json 
-						);
-					}
-				}
-				
-				DevblocksPlatform::setPluginSetting('wgm.github', 'users', json_encode($users));
-				DevblocksPlatform::redirect(new DevblocksHttpResponse(array('config','github')));
-			}
-		} else {
-			try {
-				$oauth_callback_url = $url_writer->write('ajax.php?c=config&a=handleSectionAction&section=github&action=auth&_callback=true&_csrf_token=' . $_SESSION['csrf_token'], true);
-				
-				header('Location: ' . sprintf("%s?client_id=%s&redirect_uri=%s",
-					WgmGitHub_API::OAUTH_AUTHENTICATE_URL,
-					$consumer_key,
-					urlencode($oauth_callback_url)
-				));
-				exit;
-				
-			} catch(OAuthException $e) {
-				echo "Exception: " . DevblocksPlatform::strEscapeHtml($e->getMessage());
-			}
 		}
 	}
 	
 };
 endif;
+
+class ServiceProvider_GitHub extends Extension_ServiceProvider implements IServiceProvider_OAuth, IServiceProvider_HttpRequestSigner {
+	const ID = 'wgm.github.service.provider';
+
+	private function _getAppKeys() {
+		$credentials = DevblocksPlatform::getPluginSetting('wgm.github','credentials',false,true,true);
+		
+		if(!isset($credentials['consumer_key']) || !isset($credentials['consumer_secret']))
+			return false;
+		
+		return array(
+			'key' => $credentials['consumer_key'],
+			'secret' => $credentials['consumer_secret'],
+		);
+	}
+	
+	function renderPopup() {
+		@$view_id = DevblocksPlatform::importGPC($_REQUEST['view_id'], 'string', '');
+		
+		$url_writer = DevblocksPlatform::getUrlService();
+		
+		// [TODO] Report about missing app keys
+		if(false == ($app_keys = $this->_getAppKeys()))
+			return false;
+		
+		$oauth = DevblocksPlatform::getOAuthService($app_keys['key'], $app_keys['secret']);
+		
+		// Persist the view_id in the session
+		$_SESSION['oauth_view_id'] = $view_id;
+		$_SESSION['oauth_state'] = CerberusApplication::generatePassword(24);
+		
+		// OAuth callback
+		$redirect_url = $url_writer->write(sprintf('c=oauth&a=callback&ext=%s', ServiceProvider_GitHub::ID), true);
+
+		$url = sprintf("%s?&client_id=%s&redirect_uri=%s&state=%s&scope=%s", 
+			WgmGitHub_API::OAUTH_AUTHENTICATE_URL,
+			$app_keys['key'],
+			rawurlencode($redirect_url),
+			$_SESSION['oauth_state'],
+			rawurlencode('user public_repo notifications')
+		);
+		
+		header('Location: ' . $url);
+	}
+	
+	function oauthCallback() {
+		// [TODO] Do this everywhere?
+		@$view_id = $_SESSION['oauth_view_id'];
+		@$oauth_state = $_SESSION['oauth_state'];
+		
+		@$code = DevblocksPlatform::importGPC($_REQUEST['code'], 'string', '');
+		@$state = DevblocksPlatform::importGPC($_REQUEST['state'], 'string', '');
+		@$error = DevblocksPlatform::importGPC($_REQUEST['error'], 'string', '');
+		@$error_msg = DevblocksPlatform::importGPC($_REQUEST['error_description'], 'string', '');
+		
+		$active_worker = CerberusApplication::getActiveWorker();
+		$url_writer = DevblocksPlatform::getUrlService();
+		
+		$redirect_url = $url_writer->write(sprintf('c=oauth&a=callback&ext=%s', ServiceProvider_GitHub::ID), true);
+		
+		if(false == ($app_keys = $this->_getAppKeys()))
+			return false;
+		
+		// [TODO] Check $error state
+		// [TODO] Compare $state
+		
+		$oauth = DevblocksPlatform::getOAuthService($app_keys['key'], $app_keys['secret']);
+		$oauth->setTokens($code);
+		
+		$params = $oauth->getAccessToken(WgmGitHub_API::OAUTH_ACCESS_TOKEN_URL, array(
+			'code' => $code,
+			'redirect_uri' => $redirect_url,
+			'client_id' => $app_keys['key'],
+			'client_secret' => $app_keys['secret'],
+			'state' => $state,
+		));
+		
+		if(!is_array($params) || !isset($params['access_token'])) {
+			return false;
+		}
+		
+		$github = WgmGitHub_API::getInstance();
+		$github->setToken($params['access_token']);
+		
+		$label = 'GitHub';
+		
+		// Load their profile
+		
+		$json = $github->get('user');
+		
+		// Die with error
+		if(!is_array($json) || !isset($json['login']))
+			return false;
+		
+		$label .= ' @' . $json['login'];
+		
+		// Save the account
+		
+		$id = DAO_ConnectedAccount::create(array(
+			DAO_ConnectedAccount::NAME => $label,
+			DAO_ConnectedAccount::EXTENSION_ID => ServiceProvider_GitHub::ID,
+			DAO_ConnectedAccount::OWNER_CONTEXT => CerberusContexts::CONTEXT_WORKER,
+			DAO_ConnectedAccount::OWNER_CONTEXT_ID => $active_worker->id,
+		));
+		
+		DAO_ConnectedAccount::setAndEncryptParams($id, $params);
+		
+		if($view_id) {
+			echo sprintf("<script>window.opener.genericAjaxGet('view%s', 'c=internal&a=viewRefresh&id=%s');</script>",
+				rawurlencode($view_id),
+				rawurlencode($view_id)
+			);
+			
+			C4_AbstractView::setMarqueeContextCreated($view_id, CerberusContexts::CONTEXT_CONNECTED_ACCOUNT, $id);
+		}
+		
+		echo "<script>window.close();</script>";
+	}
+	
+	function authenticateHttpRequest(Model_ConnectedAccount $account, &$ch, &$verb, &$url, &$body, &$headers) {
+		$credentials = $account->decryptParams();
+		
+		if(
+			!isset($credentials['access_token'])
+		)
+			return false;
+		
+		// Add a bearer token
+		$headers[] = sprintf('Authorization: token %s', $credentials['access_token']);
+		
+		return true;
+	}
+}

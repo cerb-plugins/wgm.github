@@ -10,56 +10,5 @@
 			<tuv xml:lang="en_US"><seg>GitHub</seg></tuv>
 		</tu>
 		
-		<!-- GitHubIssue -->
-		
-		<tu tuid='dao.github_issue.github_id'>
-			<tuv xml:lang="en_US"><seg>Github ID</seg></tuv>
-		</tu>
-		<tu tuid='dao.github_issue.github_number'>
-			<tuv xml:lang="en_US"><seg>Number</seg></tuv>
-		</tu>
-		<tu tuid='dao.github_issue.github_repository_id'>
-			<tuv xml:lang="en_US"><seg>Repository</seg></tuv>
-		</tu>
-		<tu tuid='dao.github_issue.is_closed'>
-			<tuv xml:lang="en_US"><seg>Is Closed</seg></tuv>
-		</tu>
-		<tu tuid='dao.github_issue.reporter_name'>
-			<tuv xml:lang="en_US"><seg>Reporter</seg></tuv>
-		</tu>
-		<tu tuid='dao.github_issue.reporter_github_id'>
-			<tuv xml:lang="en_US"><seg>Reporter Github ID</seg></tuv>
-		</tu>
-		<tu tuid='dao.github_issue.milestone'>
-			<tuv xml:lang="en_US"><seg>Milestone</seg></tuv>
-		</tu>
-		<tu tuid='dao.github_issue.closed_at'>
-			<tuv xml:lang="en_US"><seg>Closed Date</seg></tuv>
-		</tu>
-		<tu tuid='dao.github_issue.synced_at'>
-			<tuv xml:lang="en_US"><seg>Last Sync</seg></tuv>
-		</tu>
-		
-		<!-- GitHubRepository -->
-		
-		<tu tuid='dao.github_repository.branch'>
-			<tuv xml:lang="en_US"><seg>Branch</seg></tuv>
-		</tu>
-		<tu tuid='dao.github_repository.description'>
-			<tuv xml:lang="en_US"><seg>Description</seg></tuv>
-		</tu>
-		<tu tuid='dao.github_repository.github_watchers'>
-			<tuv xml:lang="en_US"><seg># Followers</seg></tuv>
-		</tu>
-		<tu tuid='dao.github_repository.github_forks'>
-			<tuv xml:lang="en_US"><seg># Forks</seg></tuv>
-		</tu>
-		<tu tuid='dao.github_repository.pushed_at'>
-			<tuv xml:lang="en_US"><seg>Last Push</seg></tuv>
-		</tu>
-		<tu tuid='dao.github_repository.synced_at'>
-			<tuv xml:lang="en_US"><seg>Last Sync</seg></tuv>
-		</tu>
-		
 	</body>
 </tmx>

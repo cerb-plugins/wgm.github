@@ -1,7 +1,7 @@
 Cerb Plugins - wgm.github
 ===========================================
-Copyright (C) 2012 Webgroup Media, LLC.  
-[http://www.cerberusweb.com/](http://www.cerberusweb.com/)  
+Copyright (C) 2017 Webgroup Media, LLC.  
+[http://cerb.io/](http://cerb.io/)  
 
 What's this?
 ------------
@@ -11,12 +11,12 @@ Installation
 ------------
 * Make a new [GitHub Developer Application](https://github.com/settings/applications/new)
 * Download and install the plugin through the Plugin Library in **Setup->Plugins**
-* Click **Setup->Plugins->GitHub** and configure your GitHub app credentials.
+* Click **Setup->Services->GitHub** and configure your GitHub app credentials.
 * Authorize the app for the users you wish to be available to the plugin
 
 Credits
 -------
-This plugin was developed by [WebGroup Media, LLC](http://www.cerberusweb.com/).
+This plugin was developed by [Webgroup Media, LLC](http://www.cerberusweb.com/).
 
 License
 -------
