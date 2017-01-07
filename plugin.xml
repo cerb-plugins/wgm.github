@@ -34,7 +34,7 @@
 
 		<extension point="cerberusweb.ui.page.menu.item">
 			<id>wgmgithub.setup.menu.plugins.github</id>
-			<name>GitHub Plugins Menu Item</name>
+			<name>GitHub</name>
 			<class>
 				<file>api/App.php</file>
 				<name>WgmGitHub_SetupPluginsMenuItem</name>
