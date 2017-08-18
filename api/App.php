@@ -14,7 +14,7 @@ class WgmGitHub_API {
 		if(!isset($credentials['consumer_key']) || !isset($credentials['consumer_secret']))
 			return;
 		
-		$this->_oauth = DevblocksPlatform::getOAuthService($credentials['consumer_key'], $credentials['consumer_secret']);
+		$this->_oauth = DevblocksPlatform::services()->oauth($credentials['consumer_key'], $credentials['consumer_secret']);
 	}
 	
 	/**
@@ -51,7 +51,7 @@ class WgmGitHub_SetupPluginsMenuItem extends Extension_PageMenuItem {
 	const POINT = 'wgmgithub.setup.menu.plugins.github';
 	
 	function render() {
-		$tpl = DevblocksPlatform::getTemplateService();
+		$tpl = DevblocksPlatform::services()->template();
 		$tpl->assign('extension', $this);
 		$tpl->display('devblocks:wgm.github::setup/menu_item.tpl');
 	}
@@ -63,7 +63,7 @@ class WgmGitHub_SetupSection extends Extension_PageSection {
 	const ID = 'wgmgithub.setup.github';
 	
 	function render() {
-		$tpl = DevblocksPlatform::getTemplateService();
+		$tpl = DevblocksPlatform::services()->template();
 
 		$visit = CerberusApplication::getVisit();
 		$visit->set(ChConfigurationPage::ID, 'github');
@@ -105,7 +105,7 @@ class ServiceProvider_GitHub extends Extension_ServiceProvider implements IServi
 	const ID = 'wgm.github.service.provider';
 
 	function renderConfigForm(Model_ConnectedAccount $account) {
-		$tpl = DevblocksPlatform::getTemplateService();
+		$tpl = DevblocksPlatform::services()->template();
 		$active_worker = CerberusApplication::getActiveWorker();
 		
 		$tpl->assign('account', $account);
@@ -120,7 +120,7 @@ class ServiceProvider_GitHub extends Extension_ServiceProvider implements IServi
 		@$edit_params = DevblocksPlatform::importGPC($_POST['params'], 'array', array());
 		
 		$active_worker = CerberusApplication::getActiveWorker();
-		$encrypt = DevblocksPlatform::getEncryptionService();
+		$encrypt = DevblocksPlatform::services()->encryption();
 		
 		// Decrypt OAuth params
 		if(isset($edit_params['params_json'])) {
@@ -156,13 +156,13 @@ class ServiceProvider_GitHub extends Extension_ServiceProvider implements IServi
 		// Store the $form_id in the session
 		$_SESSION['oauth_form_id'] = $form_id;
 		
-		$url_writer = DevblocksPlatform::getUrlService();
+		$url_writer = DevblocksPlatform::services()->url();
 		
 		// [TODO] Report about missing app keys
 		if(false == ($app_keys = $this->_getAppKeys()))
 			return false;
 		
-		$oauth = DevblocksPlatform::getOAuthService($app_keys['key'], $app_keys['secret']);
+		$oauth = DevblocksPlatform::services()->oauth($app_keys['key'], $app_keys['secret']);
 		
 		// Persist the view_id in the session
 		$_SESSION['oauth_state'] = CerberusApplication::generatePassword(24);
@@ -193,18 +193,19 @@ class ServiceProvider_GitHub extends Extension_ServiceProvider implements IServi
 		@$error_msg = DevblocksPlatform::importGPC($_REQUEST['error_description'], 'string', '');
 		
 		$active_worker = CerberusApplication::getActiveWorker();
-		$url_writer = DevblocksPlatform::getUrlService();
-		$encrypt = DevblocksPlatform::getEncryptionService();
+		$url_writer = DevblocksPlatform::services()->url();
+		$encrypt = DevblocksPlatform::services()->encryption();
 		
 		$redirect_url = $url_writer->write(sprintf('c=oauth&a=callback&ext=%s', ServiceProvider_GitHub::ID), true);
 		
 		if(false == ($app_keys = $this->_getAppKeys()))
 			return false;
 		
-		// [TODO] Check $error state
-		// [TODO] Compare $state
+		// Compare $state
+		if($_SESSION['oauth_state'] != $state)
+			return false;
 		
-		$oauth = DevblocksPlatform::getOAuthService($app_keys['key'], $app_keys['secret']);
+		$oauth = DevblocksPlatform::services()->oauth($app_keys['key'], $app_keys['secret']);
 		$oauth->setTokens($code);
 		
 		$params = $oauth->getAccessToken(WgmGitHub_API::OAUTH_ACCESS_TOKEN_URL, array(
@@ -233,7 +234,7 @@ class ServiceProvider_GitHub extends Extension_ServiceProvider implements IServi
 		$params['login'] = $json['login'];
 		
 		// Output
-		$tpl = DevblocksPlatform::getTemplateService();
+		$tpl = DevblocksPlatform::services()->template();
 		$tpl->assign('form_id', $form_id);
 		$tpl->assign('label', $params['login']);
 		$tpl->assign('params_json', $encrypt->encrypt(json_encode($params)));
